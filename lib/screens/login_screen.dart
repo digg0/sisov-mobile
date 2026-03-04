@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+
+import '../database_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -114,21 +117,29 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     height: 58,
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+                      // O 'async' é obrigatório para usar o 'await' do banco de dados
+                      onPressed: () async {
+                        String usuario = _userController.text;
+                        String senha = _senhaController.text;
+
+                        // 1. Chame o DatabaseHelper (certifique-se de ter importado o arquivo no topo)
+                        final user = await DatabaseHelper.instance.login(usuario, senha);
+
+                        if (user != null) {
+                          if (!mounted) return;
+                          Navigator.pushReplacementNamed(context, '/home');
+                        } else {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Usuário ou senha incorretos!')),
+                          );
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryTeal,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        elevation: 2,
+                        // ... resto do seu estilo
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Entrar na conta', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          SizedBox(width: 10),
-                          Icon(Icons.arrow_forward, size: 20),
-                        ],
-                      ),
+                      child: const Text('Entrar'),
                     ),
                   ),
                 ],
