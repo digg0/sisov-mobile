@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../services/animal_service.dart';
+import 'animal_details_screen.dart'; // Importa a nova tela!
 
 class AnimalSearchScreen extends StatefulWidget {
-  const AnimalSearchScreen({super.key});
+  const AnimalSearchScreen({super.key, required bool isTransferMode});
 
   @override
   State<AnimalSearchScreen> createState() => _AnimalSearchScreenState();
@@ -13,33 +13,53 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
   final _searchController = TextEditingController();
   final _animalService = AnimalService();
 
-  bool _isLoading = false;
-  Map<String, dynamic>? _animalData; // Guarda os dados do animal se encontrado
+  bool _isLoading = true;
+  List<dynamic> _allAnimals = [];
+  List<dynamic> _filteredAnimals = [];
   String? _errorMessage;
 
   final Color primaryTeal = const Color(0xFF0F8F82);
 
-  void _searchAnimal() async {
-    final identifier = _searchController.text.trim();
-    if (identifier.isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    _loadAnimals();
+  }
 
-    FocusScope.of(context).unfocus(); // Esconde o teclado
-
+  Future<void> _loadAnimals() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _animalData = null;
     });
 
-    final result = await _animalService.getAnimal(identifier);
+    try {
+      
+      final data = await _animalService.getAnimals(); 
+      setState(() {
+        _allAnimals = data; 
+        _filteredAnimals = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = "Erro ao carregar o rebanho.";
+        _isLoading = false;
+      });
+    }
+  }
 
+  void _filterAnimals(String query) {
+    if (query.isEmpty) {
+      setState(() => _filteredAnimals = _allAnimals);
+      return;
+    }
+    final lowerQuery = query.toLowerCase();
     setState(() {
-      _isLoading = false;
-      if (result['success']) {
-        _animalData = result['data'];
-      } else {
-        _errorMessage = result['message'];
-      }
+      _filteredAnimals = _allAnimals.where((animal) {
+        final tag = animal['tagId']?.toString().toLowerCase() ?? '';
+        final breed = animal['breed']?.toString().toLowerCase() ?? '';
+        return tag.contains(lowerQuery) || breed.contains(lowerQuery);
+      }).toList();
     });
   }
 
@@ -48,14 +68,14 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Ficha do Animal', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Meu Rebanho', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: primaryTeal,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
         children: [
-          // Área de Busca no Topo
+          // Área de Busca no Topo (Agora funciona como filtro em tempo real)
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -65,46 +85,26 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
                 bottomRight: Radius.circular(24),
               ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Digite o número do Brinco',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.15),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                      prefixIcon: const Icon(Icons.search, color: Colors.white),
-                    ),
-                    style: const TextStyle(color: Colors.white),
-                    onSubmitted: (_) => _searchAnimal(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                InkWell(
-                  onTap: _searchAnimal,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    height: 55,
-                    width: 55,
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-                    child: _isLoading
-                        ? const Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator(strokeWidth: 2))
-                        : Icon(Icons.arrow_forward_ios, color: primaryTeal, size: 20),
-                  ),
-                )
-              ],
+            child: TextField(
+              controller: _searchController,
+              onChanged: _filterAnimals, 
+              decoration: InputDecoration(
+                hintText: 'Buscar por brinco ou raça...',
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.15),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                prefixIcon: const Icon(Icons.search, color: Colors.white),
+              ),
+              style: const TextStyle(color: Colors.white),
             ),
           ),
 
-          // Área de Resultados
+          // Área de Resultados (Lista de todos os animais)
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: _buildResultArea(),
-            ),
+            child: _isLoading 
+              ? Center(child: CircularProgressIndicator(color: primaryTeal))
+              : _buildResultArea(),
           ),
         ],
       ),
@@ -117,112 +117,56 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(height: 40),
-            const Icon(Icons.search_off, size: 80, color: Colors.black26),
+            const Icon(Icons.error_outline, size: 80, color: Colors.black26),
             const SizedBox(height: 16),
             Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold)),
+            TextButton(onPressed: _loadAnimals, child: const Text("Tentar novamente"))
           ],
         ),
       );
     }
 
-    if (_animalData != null) {
-      return _buildAnimalProfile(_animalData!);
+    if (_filteredAnimals.isEmpty) {
+      return const Center(
+        child: Text('Nenhum animal encontrado.', style: TextStyle(color: Colors.black45, fontSize: 16)),
+      );
     }
 
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.only(top: 80),
-        child: Text(
-          'Busque por um brinco para ver a ficha completa.',
-          style: TextStyle(color: Colors.black45, fontSize: 16),
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnimalProfile(Map<String, dynamic> animal) {
-    // Formatação de dados
-    final isMale = animal['sex'] == 'MALE';
-    final statusCor = animal['status'] == 'ACTIVE' ? Colors.green : Colors.red;
-
-    // Tentativa simples de formatar data (se falhar, mostra o original)
-    String dataNasc = animal['birthDate'] ?? '';
-    try {
-      final date = DateTime.parse(dataNasc);
-      dataNasc = "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
-    } catch (_) {}
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Status Tag
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: statusCor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-          child: Text(
-            animal['status'] == 'ACTIVE' ? '🟢 ATIVO NA PROPRIEDADE' : '🔴 ABATIDO/INATIVO',
-            style: TextStyle(color: statusCor, fontWeight: FontWeight.bold, fontSize: 12),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Card Principal
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: _filteredAnimals.length,
+      itemBuilder: (context, index) {
+        final animal = _filteredAnimals[index];
+        final isMale = animal['sex'] == 'MALE';
+        
+        return Card(
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+            side: BorderSide(color: Colors.grey.shade200),
           ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: isMale ? Colors.blue.withOpacity(0.1) : Colors.pink.withOpacity(0.1),
-                    child: Icon(isMale ? Icons.male : Icons.female, color: isMale ? Colors.blue : Colors.pink, size: 32),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Brinco: ${animal['tagId'] ?? 'N/A'}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-                        Text(animal['breed'] ?? 'Raça não informada', style: const TextStyle(fontSize: 16, color: Color(0xFF64748B))),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
-
-              _infoRow(Icons.cake, 'Nascimento', dataNasc),
-              const SizedBox(height: 12),
-              _infoRow(Icons.location_city, 'Local de Nascimento', animal['birthCity'] ?? ''),
-              const SizedBox(height: 12),
-              _infoRow(Icons.agriculture, 'Propriedade Atual', animal['property']?['farmName'] ?? 'Desconhecida'),
-            ],
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: CircleAvatar(
+              backgroundColor: isMale ? Colors.blue.withOpacity(0.1) : Colors.pink.withOpacity(0.1),
+              child: Icon(isMale ? Icons.male : Icons.female, color: isMale ? Colors.blue : Colors.pink),
+            ),
+            title: Text(
+              'Brinco: ${animal['tagId'] ?? 'N/A'}', 
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B))
+            ),
+            subtitle: Text(animal['breed'] ?? 'Raça não informada'),
+            trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AnimalDetailsScreen(animal: animal)),
+              );
+            },
           ),
-        ),
-        const SizedBox(height: 24),
-
-        // Aqui futuramente colocaremos os botões de Ações:
-        // "Transferir", "Abater" e "Ver Histórico".
-      ],
-    );
-  }
-
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: const Color(0xFF94A3B8)),
-        const SizedBox(width: 12),
-        Expanded(child: Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 14))),
-        Text(value, style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.bold, fontSize: 14)),
-      ],
+        );
+      },
     );
   }
 }
