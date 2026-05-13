@@ -108,47 +108,38 @@ class AnimalService {
     }
   }
 
-  Future<Map<String, dynamic>>
-  transferAnimal({
+  Future<Map<String, dynamic>> transferAnimal({
     required String animalId,
     required String destinationPropertyId,
     required String destinationProducerId,
   }) async {
     try {
-      final response =
-          await ApiClient.post(
-            '/animals/$animalId/transfer',
-            {
-              'destinationPropertyId':
-                  destinationPropertyId,
+      print("--- INICIANDO REQUEST DE TRANSFERÊNCIA ---");
+      print("URL: /animals/$animalId/transfer");
 
-              'destinationProducerId':
-                  destinationProducerId,
-            },
-          );
+      final response = await ApiClient.post(
+        '/animals/$animalId/transfer',
+        {
+          'destinationPropertyId': destinationPropertyId,
+          'destinationProducerId': destinationProducerId,
+        },
+      );
 
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': jsonDecode(response.body),
-        };
+      print("STATUS CODE DA API: ${response.statusCode}");
+      print("CORPO DA RESPOSTA: ${response.body}");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': jsonDecode(response.body)};
       } else {
-        final error =
-            jsonDecode(response.body);
-
+        final error = jsonDecode(response.body);
         return {
           'success': false,
-          'message':
-              error['message'] ??
-              'Erro na transferência.',
+          'message': error['message'] ?? 'Erro na transferência.',
         };
       }
     } catch (e) {
-      return {
-        'success': false,
-        'message':
-            'Erro de conexão: $e',
-      };
+      print("ERRO CRÍTICO NO SERVICE: $e");
+      return {'success': false, 'message': 'Erro de conexão: $e'};
     }
   }
 

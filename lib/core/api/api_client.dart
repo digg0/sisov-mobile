@@ -7,7 +7,7 @@ class ApiClient {
   /// IMPORTANTE:
   /// - Use 'http://10.0.2.2:3333' se estiver rodando no Emulador Android.
   /// - Use o IP local da sua rede (ex: 'http://192.168.1.15:3333') se testar no celular físico.
-  static const String baseUrl = 'http://10.0.0.7:3333';
+  static const String baseUrl = 'https://sisov-api.onrender.com';
 
   static const _storage = FlutterSecureStorage();
 

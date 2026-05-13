@@ -25,24 +25,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
   void _processarQRCode(String qrData) {
     if (_isProcessing) return;
-    
-    setState(() => _isProcessing = true);
 
-    try {
-      // Esperamos um JSON no QR Code do tipo: 
-      // {"producerId": "...", "propertyId": "..."}
-      final data = jsonDecode(qrData);
-      
-      if (data is Map && data.containsKey('producerId') && data.containsKey('propertyId')) {
-        Navigator.pop(context, data);
-      } else {
-        _mostrarErro('QR Code inválido. Formato esperado: {"producerId": "...", "propertyId": "..."}');
-        setState(() => _isProcessing = false);
-      }
-    } catch (e) {
-      _mostrarErro('Erro ao processar QR Code: $e');
-      setState(() => _isProcessing = false);
-    }
+    setState(() => _isProcessing = true);
+    Navigator.pop(context, qrData);
   }
 
   void _mostrarErro(String mensagem) {
@@ -69,10 +54,14 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           MobileScanner(
             onDetect: (capture) {
               final List<Barcode> barcodes = capture.barcodes;
-              for (final barcode in barcodes) {
-                if (barcode.rawValue != null && !_isProcessing) {
-                  _processarQRCode(barcode.rawValue!);
-                  break;
+              if (barcodes.isNotEmpty && !_isProcessing) {
+                final String? code = barcodes.first.rawValue;
+                if (code != null) {
+                  _isProcessing = true; // Trava para não ler de novo
+                  print("SCANNER LEU: $code");
+
+                  // Use o Navigator.of(context).pop diretamente aqui para ser instantâneo
+                  Navigator.of(context).pop(code);
                 }
               }
             },

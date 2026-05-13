@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import '../services/animal_service.dart';
+import 'qr_scanner_screen.dart';
 
 class AnimalTransferScreen extends StatefulWidget {
   final String animalId;
@@ -21,62 +23,61 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
   final _animalService = AnimalService();
   final _producerIdController = TextEditingController();
   final _propertyIdController = TextEditingController();
-  final Color primaryTeal = const Color(0xFF0F8F82);
   bool _isLoading = false;
+  final Color primaryTeal = const Color(0xFF0F8F82);
 
-  @override
-  void dispose() {
-    _producerIdController.dispose();
-    _propertyIdController.dispose();
-    super.dispose();
+  void _escanearDestino() async {
+    // 1. Abre o scanner
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+    );
+
+    // 2. Se o usuário voltou sem ler nada, encerra
+    if (result == null) return;
+
+    try {
+      // 3. Forçamos o resultado a virar String e removemos espaços (trim)
+      final String rawText = result.toString().trim();
+
+      // 4. Decodificamos o JSON
+      final Map<String, dynamic> data = jsonDecode(rawText);
+
+      // 5. Atualizamos os controladores garantindo que os IDs sejam Strings
+      setState(() {
+        _producerIdController.text = (data['producerId'] ?? '').toString();
+        _propertyIdController.text = (data['propertyId'] ?? '').toString();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✓ Dados de destino carregados com sucesso!'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    } catch (e) {
+      // Caso o QR Code lido seja um link de animal ou texto inválido
+      print("Erro ao processar JSON: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('QR Code inválido para transferência.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
-  void _transferirAnimal() async {
+  void _executarTransferencia() async {
+    print("Iniciando transferência do animal: ${widget.animalId}");
+    print("Para a propriedade: ${_propertyIdController.text}");
     if (_producerIdController.text.isEmpty || _propertyIdController.text.isEmpty) {
-      _mostrarErro('Por favor, preencha todos os campos');
+      _mostrarErro('Preencha os campos ou escaneie o código de destino.');
       return;
     }
 
-    // Confirmação antes de transferir
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar Transferência'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Animal: ${widget.animalName}'),
-            const SizedBox(height: 8),
-            Text('Novo Produtor: ${_producerIdController.text}'),
-            const SizedBox(height: 8),
-            Text('Propriedade: ${_propertyIdController.text}'),
-            const SizedBox(height: 16),
-            const Text(
-              'Deseja confirmar a transferência?',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar != true) return;
-
     setState(() => _isLoading = true);
 
-    final resultado = await _animalService.transferAnimal(
+    final res = await _animalService.transferAnimal(
       animalId: widget.animalId,
       destinationPropertyId: _propertyIdController.text.trim(),
       destinationProducerId: _producerIdController.text.trim(),
@@ -84,173 +85,123 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
 
     setState(() => _isLoading = false);
 
-    if (resultado['success']) {
+    if (res['success']) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✓ Animal transferido com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text('✓ Transferência concluída!'), backgroundColor: Colors.green),
         );
-        Navigator.pop(context, true); // Retorna true para indicar sucesso
+        Navigator.pop(context, true); // Volta para a ficha do animal avisando sucesso
       }
     } else {
-      _mostrarErro(resultado['message'] ?? 'Erro ao transferir animal');
+      _mostrarErro(res['message'] ?? 'Erro no servidor ao transferir.');
     }
   }
 
-  void _mostrarErro(String mensagem) {
+  void _mostrarErro(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensagem),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text('Transferir Animal', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: primaryTeal,
-        elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Card do animal
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: primaryTeal.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: primaryTeal, width: 1),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.pets, color: primaryTeal, size: 32),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Animal a Transferir',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.animalName,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
+            // Identificação do Animal
+            _buildAnimalHeader(),
+            const SizedBox(height: 30),
 
-            const Text(
-              'Dados do Novo Proprietário',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-            ),
-            const SizedBox(height: 16),
-
-            // Campo: ID do novo produtor
-            const Text(
-              'ID do Novo Produtor',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _producerIdController,
-              keyboardType: TextInputType.text,
-              decoration: InputDecoration(
-                hintText: 'Ex: prod_123456',
-                prefixIcon: const Icon(Icons.person),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Campo: ID da propriedade destino
-            const Text(
-              'ID da Propriedade de Destino',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _propertyIdController,
-              keyboardType: TextInputType.text,
-              decoration: InputDecoration(
-                hintText: 'Ex: prop_789012',
-                prefixIcon: const Icon(Icons.location_on),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Info box
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Os IDs podem ser escaneados do QR Code do novo proprietário',
-                      style: TextStyle(fontSize: 12, color: Colors.blue[900]),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Botão de transferência
+            // BOTÃO PRINCIPAL DE SCANNER
             SizedBox(
               width: double.infinity,
-              height: 55,
-              child: ElevatedButton.icon(
-                onPressed: _isLoading ? null : _transferirAnimal,
-                icon: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white))) : const Icon(Icons.swap_horiz),
-                label: Text(_isLoading ? 'Processando...' : 'Confirmar Transferência'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Botão cancelar
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: OutlinedButton(
-                onPressed: () => Navigator.pop(context),
+              height: 60,
+              child: OutlinedButton.icon(
+                onPressed: _escanearDestino,
+                icon: const Icon(Icons.qr_code_scanner, size: 28),
+                label: const Text("ESCANEAR FAZENDA DESTINO", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  foregroundColor: primaryTeal,
+                  side: BorderSide(color: primaryTeal, width: 2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
-                child: const Text('Cancelar'),
+              ),
+            ),
+
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 25),
+              child: Row(
+                children: [
+                  Expanded(child: Divider()),
+                  Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text("OU MANUAL", style: TextStyle(color: Colors.grey, fontSize: 12))),
+                  Expanded(child: Divider()),
+                ],
+              ),
+            ),
+
+            // Campos Manuais
+            _buildField("ID do Novo Produtor", _producerIdController, Icons.person),
+            const SizedBox(height: 15),
+            _buildField("ID da Propriedade", _propertyIdController, Icons.location_on),
+
+            const SizedBox(height: 40),
+
+            // Botão de Envio
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _executarTransferencia,
+                style: ElevatedButton.styleFrom(backgroundColor: primaryTeal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("CONFIRMAR TRANSFERÊNCIA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAnimalHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: primaryTeal.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
+      child: Row(
+        children: [
+          Icon(Icons.pets, color: primaryTeal, size: 30),
+          const SizedBox(width: 15),
+          Text(widget.animalName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildField(String label, TextEditingController controller, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
+        ),
+      ],
     );
   }
 }
