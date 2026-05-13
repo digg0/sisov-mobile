@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
         '/properties': (context) => const PropertiesListScreen(),
         '/properties/add': (context) => const PropertyCreateScreen(),
         '/select-property': (context) => const SelectPropertyForAnimalScreen(),
-        '/search-animal': (context) => const AnimalSearchScreen(),
+        '/search-animal': (context) => const AnimalSearchScreen(isTransferMode: false),
       },
     );
   }
