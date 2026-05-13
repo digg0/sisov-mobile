@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Necessário para o feedback tátil
+import 'package:flutter/services.dart';
+
 import '../services/auth_service.dart';
+import '../../animals/services/animal_service.dart';
+import '../../animals/views/animal_search_screen.dart';
+import '../../animals/views/animal_details_screen.dart';
+import '../../animals/views/qr_scanner_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,6 +16,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _authService = AuthService();
+  final _animalService = AnimalService();
+
   Map<String, dynamic>? _userProfile;
   bool _isLoadingProfile = true;
 
@@ -33,113 +40,148 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _navTo(Widget screen) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => screen),
+    );
+    _loadUserData();
+  }
+
+  void _scanAnimalQRCode() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+    );
+
+    if (result == null) return;
+
+    String scannedText = result.toString();
+    String animalId = "";
+
+    scannedText = scannedText.trim();
+
+    if (scannedText.contains("sisov://manage/")) {
+      animalId = scannedText.replaceAll("sisov://manage/", "").trim();
+    } else if (scannedText.contains("https://sisov.com.br/rastreabilidade/")) {
+      animalId = scannedText.replaceAll("https://sisov.com.br/rastreabilidade/", "").trim();
+    }
+
+    if (animalId.isNotEmpty) {
+      animalId = animalId.replaceAll(" ", "");
+
+      setState(() => _isLoadingProfile = true);
+      final res = await _animalService.getAnimal(animalId);
+
+      if (res['success']) {
+        _navTo(AnimalDetailsScreen(animal: res['data']));
+      } else {
+        _loadUserData();
+        _mostrarErro("Animal não localizado.");
+      }
+    }
+  }
+
+  void _mostrarErro(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Scaffold com Drawer e AppBar
-    return Scaffold(
-      backgroundColor: bgGray,
-      drawer: _buildDrawer(),
-      appBar: AppBar(
-        backgroundColor: primaryTeal,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        systemOverlayStyle: SystemUiOverlayStyle.light, // Ajusta ícones da status bar
-        title: const Text(
-          'SISOV Dashboard',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () => HapticFeedback.selectionClick(),
-          ),
-        ],
+    // AJUSTE: AnnotatedRegion força o sistema a pintar a barra de navegação
+    // inferior e a barra de status de acordo com o design do app.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent, // Transparente para o AppBar brilhar
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: bgGray, // Cor do fundo do app na barra inferior
+        systemNavigationBarIconBrightness: Brightness.dark, // Ícones escuros na barra clara
       ),
-      // SafeArea garante que o conteúdo não fique sob a barra de navegação do celular
-      body: SafeArea(
-        child: _isLoadingProfile
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-          onRefresh: _loadUserData,
-          color: primaryTeal,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              children: [
-                _buildStatHeader(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Ações Rápidas",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildQuickActions(),
-                      const SizedBox(height: 32),
-                      const Text(
-                        "Resumo do Rebanho",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                      ),
-                      const SizedBox(height: 16),
-                      // Os dados abaixo podem vir do seu backend futuramente
-                      _buildStatusItem("Fêmeas em reprodução", "00", Icons.female, Colors.pink),
-                      _buildStatusItem("Transferências recentes", "00", Icons.swap_horiz, Colors.blue),
-                      _buildStatusItem("Alertas Sanitários", "00", Icons.warning_amber_rounded, Colors.orange),
-                      _buildStatusItem("Finalizados em Tauá", "00", Icons.verified, Colors.purple),
-                    ],
+      child: Scaffold(
+        backgroundColor: bgGray,
+        drawer: _buildDrawer(),
+        appBar: AppBar(
+          backgroundColor: primaryTeal,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: const Text(
+            'SISOV Dashboard',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications_none),
+              onPressed: () => HapticFeedback.selectionClick(),
+            ),
+          ],
+        ),
+        // AJUSTE: SafeArea no body garante que o conteúdo não fique embaixo da barra de navegação
+        body: SafeArea(
+          // bottom: true garante que respeite a barra inferior de gestos/botões
+          bottom: true,
+          child: _isLoadingProfile
+              ? Center(child: CircularProgressIndicator(color: primaryTeal))
+              : RefreshIndicator(
+            onRefresh: _loadUserData,
+            color: primaryTeal,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildStatHeader(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Ações Rápidas",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildQuickActions(),
+                        const SizedBox(height: 32),
+                        const Text(
+                          "Resumo do Rebanho",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStatusItem(
+                          "Fêmeas em reprodução",
+                          _userProfile?['femaleCount']?.toString().padLeft(2, '0') ?? "00",
+                          Icons.female,
+                          Colors.pink,
+                        ),
+                        _buildStatusItem(
+                          "Transferências recentes",
+                          _userProfile?['transfersCount']?.toString().padLeft(2, '0') ?? "00",
+                          Icons.swap_horiz,
+                          Colors.blue,
+                        ),
+                        _buildStatusItem("Alertas Sanitários", "00", Icons.warning_amber_rounded, Colors.orange),
+                        _buildStatusItem(
+                          "Finalizados (Abatidos)",
+                          _userProfile?['slaughteredCount']?.toString().padLeft(2, '0') ?? "00",
+                          Icons.verified,
+                          Colors.purple,
+                        ),
+                        // Espaço extra no final para não "colar" na borda inferior do celular
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      child: Column(
-        children: [
-          UserAccountsDrawerHeader(
-            decoration: BoxDecoration(color: primaryTeal),
-            currentAccountPicture: const CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person, size: 40, color: Color(0xFF0F8F82)),
-            ),
-            accountName: Text(_userProfile?['name'] ?? 'Carregando...', style: const TextStyle(fontWeight: FontWeight.bold)),
-            accountEmail: Text(_userProfile?['email'] ?? ''),
-          ),
-          _drawerItem(Icons.agriculture, 'Minhas Propriedades', () => Navigator.pushNamed(context, '/properties')),
-          _drawerItem(Icons.settings_outlined, 'Configurações', () {}),
-          const Spacer(),
-          const Divider(),
-          _drawerItem(Icons.logout, 'Sair da Conta', () async {
-            await _authService.logout();
-            if (mounted) Navigator.pushReplacementNamed(context, '/login');
-          }, color: Colors.red),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  Widget _drawerItem(IconData icon, String title, VoidCallback onTap, {Color? color}) {
-    return ListTile(
-      leading: Icon(icon, color: color ?? primaryTeal),
-      title: Text(title, style: TextStyle(color: color)),
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
     );
   }
 
   Widget _buildStatHeader() {
-    // Pega os dados do produtor ou usa 0 como padrão
     final total = _userProfile?['totalAnimals']?.toString() ?? "0";
     final ativos = _userProfile?['activeAnimals']?.toString() ?? "0";
 
@@ -181,13 +223,16 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisSpacing: 14,
       mainAxisSpacing: 14,
       children: [
-        _actionButton("Novo Ovino", Icons.add_circle_outline, Colors.teal, () {
-          Navigator.pushNamed(context, '/select-property');
+        _actionButton("Novo Ovino", Icons.add_circle_outline, Colors.teal, () async {
+          await Navigator.pushNamed(context, '/select-property');
+          _loadUserData();
         }),
-        _actionButton("Ler via BLE", Icons.bluetooth_searching, Colors.blue, () {}),
-        _actionButton("Transferência", Icons.sync_alt, Colors.indigo, () {}),
-        _actionButton("Rastreabilidade", Icons.bar_chart, Colors.green, () {
-          Navigator.pushNamed(context, '/search-animal');
+        _actionButton("Ler QR Code", Icons.qr_code_scanner, Colors.blue, _scanAnimalQRCode),
+        _actionButton("Transferência", Icons.sync_alt, Colors.indigo, () {
+          _navTo(const AnimalSearchScreen(isTransferMode: true));
+        }),
+        _actionButton("Rebanho", Icons.agriculture, Colors.green, () {
+          _navTo(const AnimalSearchScreen(isTransferMode: false));
         }),
       ],
     );
@@ -199,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: () {
-          HapticFeedback.mediumImpact(); // Feedback tátil ao tocar
+          HapticFeedback.mediumImpact();
           onTap();
         },
         borderRadius: BorderRadius.circular(20),
@@ -259,6 +304,75 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      // backgroundColor: bgGray, // Opcional: define a cor de fundo do menu
+      child: Column(
+        children: [
+          // O UserAccountsDrawerHeader já tenta respeitar o topo,
+          // mas embrulhamos em um MediaQuery para garantir que ele
+          // saiba exatamente o tamanho da barra de status.
+          UserAccountsDrawerHeader(
+            margin: EdgeInsets.zero, // Remove margens que podem causar desalinhamento
+            decoration: BoxDecoration(color: primaryTeal),
+            currentAccountPicture: const CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person, size: 40, color: Color(0xFF0F8F82)),
+            ),
+            accountName: Text(
+              _userProfile?['name'] ?? 'Carregando...',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            accountEmail: Text(_userProfile?['email'] ?? ''),
+          ),
+
+          // Itens do Menu
+          _drawerItem(
+            Icons.agriculture,
+            'Minhas Propriedades',
+                () => Navigator.pushNamed(context, '/properties'),
+          ),
+          _drawerItem(
+            Icons.settings_outlined,
+            'Configurações',
+                () {},
+          ),
+
+          const Spacer(), // Empurra o botão de sair para o final
+
+          const Divider(),
+
+          // AJUSTE: SafeArea inferior para o botão de Sair não ficar
+          // em cima da barra de navegação/gestos do sistema.
+          SafeArea(
+            top: false, // O topo já é tratado pelo Header
+            child: _drawerItem(
+              Icons.logout,
+              'Sair da Conta',
+                  () async {
+                await _authService.logout();
+                if (mounted) Navigator.pushReplacementNamed(context, '/login');
+              },
+              color: Colors.red,
+            ),
+          ),
+          const SizedBox(height: 10), // Respiro final
+        ],
+      ),
+    );
+  }
+
+  Widget _drawerItem(IconData icon, String title, VoidCallback onTap, {Color? color}) {
+    return ListTile(
+      leading: Icon(icon, color: color ?? primaryTeal),
+      title: Text(title, style: TextStyle(color: color)),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
     );
   }
 }

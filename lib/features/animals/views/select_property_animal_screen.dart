@@ -59,7 +59,7 @@ class SelectPropertyForAnimalScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => AnimalCreateScreen(
-                          propertyId: prop.id!, // Passando o ID do objeto
+                          propertyId: prop.id, // Passando o ID do objeto
                         ),
                       ),
                     );
