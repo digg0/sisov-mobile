@@ -23,6 +23,40 @@ class AuthService {
     }
   }
 
+  // Método de Cadastro
+  Future<Map<String, dynamic>> register(
+    String name,
+    String document,
+    String email,
+    String password,
+  ) async {
+    try {
+      final response = await ApiClient.post(
+        '/auth/register',
+        {
+          'name': name,
+          'document': document,
+          'email': email,
+          'password': password,
+        },
+      );
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': 'Cadastro realizado com sucesso! Faça login para continuar.'};
+      } else if (response.statusCode == 409) {
+        return {'success': false, 'message': responseData['message'] ?? 'Já existe um produtor com este documento ou e-mail.'};
+      } else if (response.statusCode == 422) {
+        return {'success': false, 'message': responseData['message'] ?? 'Erro de validação dos campos.'};
+      } else if (response.statusCode == 429) {
+        return {'success': false, 'message': 'Muitas tentativas. Tente novamente em 15 minutos.'};
+      }
+      return {'success': false, 'message': responseData['message'] ?? 'Erro ao realizar cadastro.'};
+    } catch (e) {
+      return {'success': false, 'message': 'Erro de conexão.'};
+    }
+  }
+
   // --- ADICIONE ESTE MÉTODO PARA O LOGOUT ---
   Future<void> logout() async {
     // Apaga o token do armazenamento seguro do celular

@@ -41,6 +41,7 @@ dependencies:
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.2.0
   font_awesome_flutter: ^11.0.0
+  image: ^4.0.17
 
 dev_dependencies:
   flutter_test:

@@ -194,6 +194,30 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
+
+                    const SizedBox(height: 20),
+
+                    // LINK PARA CADASTRO
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Não tem conta? ',
+                          style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 14),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pushNamed(context, '/register'),
+                          child: Text(
+                            'Cadastre-se',
+                            style: TextStyle(
+                              color: primaryTeal,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

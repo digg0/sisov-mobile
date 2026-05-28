@@ -6,6 +6,7 @@ import '../../animals/services/animal_service.dart';
 import '../../animals/views/animal_search_screen.dart';
 import '../../animals/views/animal_details_screen.dart';
 import '../../animals/views/qr_scanner_screen.dart';
+import '../../properties/views/properties_create_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Map<String, dynamic>? _userProfile;
   bool _isLoadingProfile = true;
+  int _cachedSlaughteredCount = 0;
 
   final Color primaryTeal = const Color(0xFF0F8F82);
   final Color bgGray = const Color(0xFFF8FAFC);
@@ -33,9 +35,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadUserData() async {
     final profile = await _authService.getProfile();
     if (mounted) {
+      // Carrega o count de abatidos separadamente
+      final slaughteredCount = await _getSlaughteredCount();
+      
       setState(() {
         _userProfile = profile;
         _isLoadingProfile = false;
+        _cachedSlaughteredCount = slaughteredCount;
       });
     }
   }
@@ -88,16 +94,88 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<int> _getSlaughteredCount() async {
+    // Primeiro tenta os nomes de campo conhecidos
+    final fieldCount = _countProfileValue([
+      'slaughteredCount',
+      'slaughtered_count',
+      'slaughteredAnimalsCount',
+      'slaughtered_animals_count',
+      'finishedCount',
+      'finished_count',
+      'finalizadosCount',
+      'finalizados_count',
+      'slaughterCount',
+      'slaughter_count',
+      'abatedCount',
+      'abated_count',
+    ]);
+
+    
+    if (fieldCount > 0) return fieldCount;
+
+    
+    try {
+      final animals = await _animalService.getAnimals();
+      if (animals is List) {
+        final count = animals
+            .where((animal) => 
+                animal is Map && 
+                animal['status'] == 'SLAUGHTERED'
+            )
+            .length;
+        return count;
+      }
+    } catch (_) {
+      
+    }
+
+    return 0;
+  }
+
+  int _countProfileValue(List<String> keys) {
+    if (_userProfile == null) return 0;
+    for (final key in keys) {
+      final value = _userProfile![key];
+      if (value != null) {
+        final parsed = int.tryParse(value.toString());
+        if (parsed != null) return parsed;
+      }
+    }
+    return 0;
+  }
+
+  void _showDebugProfile() {
+    final profileJson = _userProfile != null ? _userProfile!.toString() : "Nenhum perfil carregado";
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Debug: Perfil Completo"),
+        content: SingleChildScrollView(
+          child: Text(
+            profileJson,
+            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Fechar"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // AJUSTE: AnnotatedRegion força o sistema a pintar a barra de navegação
-    // inferior e a barra de status de acordo com o design do app.
+    
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent, // Transparente para o AppBar brilhar
+        statusBarColor: Colors.transparent, 
         statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: bgGray, // Cor do fundo do app na barra inferior
-        systemNavigationBarIconBrightness: Brightness.dark, // Ícones escuros na barra clara
+        systemNavigationBarColor: bgGray, 
+        systemNavigationBarIconBrightness: Brightness.dark, 
       ),
       child: Scaffold(
         backgroundColor: bgGray,
@@ -117,9 +195,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        // AJUSTE: SafeArea no body garante que o conteúdo não fique embaixo da barra de navegação
+        
         body: SafeArea(
-          // bottom: true garante que respeite a barra inferior de gestos/botões
+          
           bottom: true,
           child: _isLoadingProfile
               ? Center(child: CircularProgressIndicator(color: primaryTeal))
@@ -136,6 +214,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // BOTÃO DEBUG: Mostra todos os campos do perfil
+                        GestureDetector(
+                          onLongPress: () => _showDebugProfile(),
+                          child: const SizedBox.shrink(),
+                        ),
                         const Text(
                           "Ações Rápidas",
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
@@ -150,20 +233,31 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 16),
                         _buildStatusItem(
                           "Fêmeas em reprodução",
-                          _userProfile?['femaleCount']?.toString().padLeft(2, '0') ?? "00",
+                          _countProfileValue([
+                            'femaleCount',
+                            'female_count',
+                            'femalesCount',
+                            'females_count',
+                            'female_animals_count',
+                          ]).toString().padLeft(2, '0'),
                           Icons.female,
                           Colors.pink,
                         ),
                         _buildStatusItem(
                           "Transferências recentes",
-                          _userProfile?['transfersCount']?.toString().padLeft(2, '0') ?? "00",
+                          _countProfileValue([
+                            'transfersCount',
+                            'transfers_count',
+                            'transferCount',
+                            'transfer_count',
+                          ]).toString().padLeft(2, '0'),
                           Icons.swap_horiz,
                           Colors.blue,
                         ),
                         _buildStatusItem("Alertas Sanitários", "00", Icons.warning_amber_rounded, Colors.orange),
                         _buildStatusItem(
                           "Finalizados (Abatidos)",
-                          _userProfile?['slaughteredCount']?.toString().padLeft(2, '0') ?? "00",
+                          _cachedSlaughteredCount.toString().padLeft(2, '0'),
                           Icons.verified,
                           Colors.purple,
                         ),
@@ -182,8 +276,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatHeader() {
-    final total = _userProfile?['totalAnimals']?.toString() ?? "0";
-    final ativos = _userProfile?['activeAnimals']?.toString() ?? "0";
+    final total = _countProfileValue([
+      'totalAnimals',
+      'total_animals',
+      'animalsCount',
+      'animals_count',
+    ]).toString();
+    final ativos = _countProfileValue([
+      'activeAnimals',
+      'active_animals',
+      'activeAnimalCount',
+      'active_animal_count',
+    ]).toString();
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
@@ -233,6 +337,9 @@ class _HomeScreenState extends State<HomeScreen> {
         }),
         _actionButton("Rebanho", Icons.agriculture, Colors.green, () {
           _navTo(const AnimalSearchScreen(isTransferMode: false));
+        }),
+        _actionButton("Nova Propriedade", Icons.location_on, Colors.orange, () {
+          _navTo(const PropertyCreateScreen());
         }),
       ],
     );

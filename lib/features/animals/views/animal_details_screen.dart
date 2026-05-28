@@ -1,6 +1,12 @@
+import 'dart:typed_data';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:image/image.dart' as img;
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../core/utils/image_exporter.dart';
 import '../services/animal_service.dart';
 import 'qr_scanner_screen.dart';
 
@@ -20,6 +26,8 @@ class AnimalDetailsScreen extends StatefulWidget {
 class _AnimalDetailsScreenState
     extends State<AnimalDetailsScreen> {
   final _animalService = AnimalService();
+  final GlobalKey _qrKey = GlobalKey();
+  bool _isExportingImage = false;
 
   static const String statusActive =
       'ACTIVE';
@@ -221,16 +229,67 @@ class _AnimalDetailsScreenState
 
                     child: Column(
                       children: [
-                        QrImageView(
-                          data: qrData,
+                        RepaintBoundary(
+                          key: _qrKey,
+                          child: QrImageView(
+                            data: qrData,
+                            version: QrVersions.auto,
+                            size: 200.0,
+                            foregroundColor: primaryTeal,
+                          ),
+                        ),
 
-                          version:
-                              QrVersions.auto,
+                        const SizedBox(
+                          height: 16,
+                        ),
 
-                          size: 200.0,
-
-                          foregroundColor:
-                              primaryTeal,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 46,
+                                child: ElevatedButton(
+                                  onPressed: _isExportingImage
+                                      ? null
+                                      : () => _exportQRCode(false, animalId),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryTeal,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  child: _isExportingImage
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text('Exportar PNG'),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: SizedBox(
+                                height: 46,
+                                child: ElevatedButton(
+                                  onPressed: _isExportingImage
+                                      ? null
+                                      : () => _exportQRCode(true, animalId),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  child: const Text('Exportar JPG'),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(
@@ -518,6 +577,56 @@ class _AnimalDetailsScreenState
         ],
       ),
     );
+  }
+
+  Future<void> _exportQRCode(bool asJpg, String animalId) async {
+    if (_qrKey.currentContext == null) return;
+
+    setState(() => _isExportingImage = true);
+    try {
+      final boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3);
+      final byteData = await image.toByteData(format: ImageByteFormat.png);
+
+      if (byteData == null) {
+        throw Exception('Não foi possível gerar a imagem do QR Code.');
+      }
+
+      final pngBytes = byteData.buffer.asUint8List();
+      final outputBytes = asJpg ? _convertPngToJpg(pngBytes) : pngBytes;
+      final extension = asJpg ? 'jpg' : 'png';
+      final filename = 'qr_animal_${animalId}_${DateTime.now().millisecondsSinceEpoch}.$extension';
+      final savedPath = await saveImageBytes(outputBytes, filename, extension);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('QR Code exportado: $filename\n$savedPath'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Falha ao exportar QR: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExportingImage = false);
+    }
+  }
+
+  Uint8List _convertPngToJpg(Uint8List pngBytes) {
+    final decoded = img.decodePng(pngBytes);
+    if (decoded == null) {
+      throw Exception('Falha na conversão para JPG.');
+    }
+    return Uint8List.fromList(img.encodeJpg(decoded, quality: 90));
   }
 
   Widget _infoRow(
