@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../properties/services/property_service.dart';
 import '../../properties/models/property_model.dart'; // Importe o model aqui
 import 'animal_create_screen.dart';
@@ -13,7 +14,7 @@ class SelectPropertyForAnimalScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Selecionar Fazenda', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF0F8F82),
+        backgroundColor: AppColors.primary,
       ),
       // Tipamos o FutureBuilder para esperar uma lista de PropertyModel
       body: FutureBuilder<List<PropertyModel>>(
@@ -43,9 +44,9 @@ class SelectPropertyForAnimalScreen extends StatelessWidget {
                 elevation: 2,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0x1A0F8F82),
-                    child: Icon(Icons.agriculture, color: Color(0xFF0F8F82)),
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    child: const Icon(Icons.agriculture, color: AppColors.primary),
                   ),
                   // Acesso via ponto (.) em vez de colchetes ([])
                   title: Text(

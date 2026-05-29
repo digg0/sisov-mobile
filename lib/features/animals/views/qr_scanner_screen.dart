@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class QRScannerScreen extends StatefulWidget {
@@ -9,7 +10,6 @@ class QRScannerScreen extends StatefulWidget {
 }
 
 class _QRScannerScreenState extends State<QRScannerScreen> {
-  final Color primaryTeal = const Color(0xFF0F8F82);
   bool _isProcessing = false;
 
   @override
@@ -44,7 +44,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Escanear QR Code', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: primaryTeal,
+        backgroundColor: AppColors.primary,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -107,7 +107,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             Container(
               color: Colors.black54,
               child: Center(
-                child: CircularProgressIndicator(color: primaryTeal),
+                child: const CircularProgressIndicator(color: AppColors.primary),
               ),
             ),
         ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../../../core/utils/validators.dart';
 
@@ -27,8 +28,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // 4. Instância da nossa API
   final _authService = AuthService();
-
-  final Color primaryTeal = const Color(0xFF0F8F82);
 
   // Validador customizado para confirmar senha
   String? _validateConfirmPassword(String? value) {
@@ -107,10 +106,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: primaryTeal,
+      backgroundColor: AppColors.primary,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        backgroundColor: primaryTeal,
+        backgroundColor: AppColors.primary,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -182,7 +181,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // NOME
                     const Text(
                       'Nome Completo',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -197,7 +196,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // CPF
                     const Text(
                       'CPF',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -213,7 +212,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // E-MAIL
                     const Text(
                       'E-mail',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -228,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // SENHA
                     const Text(
                       'Senha',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -240,7 +239,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            color: const Color(0xFF94A3B8),
+                            color: AppColors.textMuted,
                             size: 20,
                           ),
                           onPressed: () => setState(() => _obscureText = !_obscureText),
@@ -254,7 +253,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // CONFIRMAR SENHA
                     const Text(
                       'Confirmar Senha',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -266,7 +265,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscureConfirmText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            color: const Color(0xFF94A3B8),
+                            color: AppColors.textMuted,
                             size: 20,
                           ),
                           onPressed: () => setState(() => _obscureConfirmText = !_obscureConfirmText),
@@ -284,7 +283,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _fazerCadastro,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryTeal,
+                          backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -325,7 +324,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: Text(
                             'Fazer login',
                             style: TextStyle(
-                              color: primaryTeal,
+                              color: AppColors.primary,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -347,22 +346,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
   InputDecoration _inputStyle(String hint, IconData icon, {Widget? suffixIcon}) {
     return InputDecoration(
       hintText: hint,
-      prefixIcon: Icon(icon, color: const Color(0xFF94A3B8), size: 22),
+      prefixIcon: Icon(icon, color: AppColors.textMuted, size: 22),
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: const Color(0xFFF8FAFC),
+      fillColor: AppColors.background,
       contentPadding: const EdgeInsets.symmetric(vertical: 18),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: primaryTeal, width: 2),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),

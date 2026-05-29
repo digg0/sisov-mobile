@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:convert';
 
@@ -25,7 +26,7 @@ class ReceiveAnimalScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Receber Ovino"),
-        backgroundColor: const Color(0xFF0F8F82),
+        backgroundColor: AppColors.primary,
       ),
       body: Center(
         child: Column(
@@ -36,7 +37,7 @@ class ReceiveAnimalScreen extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            Text("Destino: $farmName", style: TextStyle(color: Colors.grey)),
+            Text("Destino: $farmName", style: const TextStyle(color: AppColors.textMuted)),
             const SizedBox(height: 30),
             Container(
               padding: const EdgeInsets.all(16),
@@ -49,7 +50,7 @@ class ReceiveAnimalScreen extends StatelessWidget {
                 data: receiveData,
                 version: QrVersions.auto,
                 size: 250.0,
-                foregroundColor: const Color(0xFF0F8F82),
+                foregroundColor: AppColors.primary,
               ),
             ),
           ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../models/management_event_model.dart';
 
 class AnimalHistoryScreen extends StatelessWidget {
@@ -37,7 +38,7 @@ class AnimalHistoryScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final event = events[index];
           return ListTile(
-            leading: Icon(_iconForType(event.eventType), color: const Color(0xFF0F8F82)),
+            leading: Icon(_iconForType(event.eventType), color: AppColors.primary),
             title: Text(event.label),
             subtitle: Text(event.subtitle.isNotEmpty ? event.subtitle : 'Sem observações'),
             trailing: Text(event.formattedDate),

@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/image_exporter.dart';
 import '../services/animal_service.dart';
 import 'animal_history_screen.dart';
@@ -15,56 +16,37 @@ import 'qr_scanner_screen.dart';
 class AnimalDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> animal;
 
-  const AnimalDetailsScreen({
-    super.key,
-    required this.animal,
-  });
+  const AnimalDetailsScreen({super.key, required this.animal});
 
   @override
-  State<AnimalDetailsScreen> createState() =>
-      _AnimalDetailsScreenState();
+  State<AnimalDetailsScreen> createState() => _AnimalDetailsScreenState();
 }
 
-class _AnimalDetailsScreenState
-    extends State<AnimalDetailsScreen> {
+class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
   final _animalService = AnimalService();
   final GlobalKey _qrKey = GlobalKey();
   bool _isExportingImage = false;
 
-  static const String statusActive =
-      'ACTIVE';
+  static const String statusActive = 'ACTIVE';
 
-  static const String statusSlaughtered =
-      'SLAUGHTERED';
+  static const String statusSlaughtered = 'SLAUGHTERED';
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryTeal =
-        const Color(0xFF0F8F82);
-
     final animal = widget.animal;
 
-    final bool isMale =
-        animal['sex'] == 'MALE';
+    final bool isMale = animal['sex'] == 'MALE';
 
-    final bool isActive =
-        animal['status'] == statusActive;
+    final bool isActive = animal['status'] == statusActive;
 
-    final bool isSlaughtered =
-        animal['status'] ==
-            statusSlaughtered;
+    final bool isSlaughtered = animal['status'] == statusSlaughtered;
 
-    final Color statusCor =
-        isActive
-            ? Colors.green
-            : Colors.red;
+    final Color statusCor = isActive ? Colors.green : Colors.red;
 
-    String dataNasc =
-        animal['birthDate'] ?? '';
+    String dataNasc = animal['birthDate'] ?? '';
 
     try {
-      final date =
-          DateTime.parse(dataNasc);
+      final date = DateTime.parse(dataNasc);
 
       dataNasc =
           "${date.day.toString().padLeft(2, '0')}/"
@@ -72,29 +54,20 @@ class _AnimalDetailsScreenState
           "${date.year}";
     } catch (_) {}
 
-    final String animalId =
-        (animal['sisovId'] ??
-                animal['id'] ??
-                '')
-            .toString();
+    final String animalId = (animal['sisovId'] ?? animal['id'] ?? '')
+        .toString();
 
     // Lógica inteligente do QR Code
     // Se abatido -> link público
     // Se ativo -> link interno de manejo
-    final String publicUrl =
-        "https://sisov.com.br/rastreabilidade/$animalId";
+    final String publicUrl = "https://sisov.com.br/rastreabilidade/$animalId";
 
-    final String internalUrl =
-        "sisov://manage/$animalId";
+    final String internalUrl = "sisov://manage/$animalId";
 
-    final String qrData =
-        isSlaughtered
-            ? publicUrl
-            : internalUrl;
+    final String qrData = isSlaughtered ? publicUrl : internalUrl;
 
     return Scaffold(
-      backgroundColor:
-          const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
 
       appBar: AppBar(
         title: Text(
@@ -102,60 +75,40 @@ class _AnimalDetailsScreenState
 
           style: const TextStyle(
             color: Colors.white,
-            fontWeight:
-                FontWeight.bold,
+            fontWeight: FontWeight.bold,
           ),
         ),
 
-        backgroundColor:
-            primaryTeal,
+        backgroundColor: AppColors.primary,
 
         elevation: 0,
 
-        iconTheme:
-            const IconThemeData(
-              color: Colors.white,
-            ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
 
       body: SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
 
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
 
           children: [
             // TAG DE STATUS
             Container(
-              padding:
-                  const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
 
               decoration: BoxDecoration(
-                color: statusCor
-                    .withValues(
-                      alpha: 0.1,
-                    ),
+                color: statusCor.withValues(alpha: 0.1),
 
-                borderRadius:
-                    BorderRadius.circular(
-                      20,
-                    ),
+                borderRadius: BorderRadius.circular(20),
               ),
 
               child: Text(
-                isActive
-                    ? '🟢 ATIVO NA PROPRIEDADE'
-                    : '🔴 ABATIDO/INATIVO',
+                isActive ? '🟢 ATIVO NA PROPRIEDADE' : '🔴 ABATIDO/INATIVO',
 
                 style: TextStyle(
                   color: statusCor,
-                  fontWeight:
-                      FontWeight.bold,
+                  fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
               ),
@@ -164,11 +117,7 @@ class _AnimalDetailsScreenState
             const SizedBox(height: 16),
 
             // CARD PRINCIPAL
-            _buildInfoCard(
-              animal,
-              isMale,
-              dataNasc,
-            ),
+            _buildInfoCard(animal, isMale, dataNasc),
 
             const SizedBox(height: 30),
 
@@ -177,52 +126,36 @@ class _AnimalDetailsScreenState
               child: Column(
                 children: [
                   Text(
-                    isSlaughtered ? "QR Code de Rastreabilidade" : "QR Code de Manejo",
+                    isSlaughtered
+                        ? "QR Code de Rastreabilidade"
+                        : "QR Code de Manejo",
 
                     style: const TextStyle(
-                      fontWeight:
-                          FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                       fontSize: 18,
-                      color: Color(
-                        0xFF1E293B,
-                      ),
+                      color: AppColors.textPrimary,
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 16,
-                  ),
+                  const SizedBox(height: 16),
 
                   Container(
-                    padding:
-                        const EdgeInsets.all(
-                          20,
-                        ),
+                    padding: const EdgeInsets.all(20),
 
                     decoration: BoxDecoration(
                       color: Colors.white,
 
-                      borderRadius:
-                          BorderRadius.circular(
-                            24,
-                          ),
+                      borderRadius: BorderRadius.circular(24),
 
                       border: Border.all(
-                        color: primaryTeal
-                            .withValues(
-                              alpha: 0.2,
-                            ),
+                        color: AppColors.primary.withOpacity(0.2),
 
                         width: 2,
                       ),
 
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black
-                              .withValues(
-                                alpha:
-                                    0.04,
-                              ),
+                          color: Colors.black.withValues(alpha: 0.04),
 
                           blurRadius: 10,
                         ),
@@ -237,13 +170,11 @@ class _AnimalDetailsScreenState
                             data: qrData,
                             version: QrVersions.auto,
                             size: 200.0,
-                            foregroundColor: primaryTeal,
+                            foregroundColor: AppColors.primary,
                           ),
                         ),
 
-                        const SizedBox(
-                          height: 16,
-                        ),
+                        const SizedBox(height: 16),
 
                         Row(
                           children: [
@@ -255,7 +186,8 @@ class _AnimalDetailsScreenState
                                       ? null
                                       : () => _exportQRCode(false, animalId),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: primaryTeal,
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14),
                                     ),
@@ -282,7 +214,8 @@ class _AnimalDetailsScreenState
                                       ? null
                                       : () => _exportQRCode(true, animalId),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.orange,
+                                    backgroundColor: AppColors.primaryDark,
+                                    foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14),
                                     ),
@@ -294,28 +227,20 @@ class _AnimalDetailsScreenState
                           ],
                         ),
 
-                        const SizedBox(
-                          height: 16,
-                        ),
+                        const SizedBox(height: 16),
 
                         Text(
                           isSlaughtered
                               ? "Escaneie para visualizar o histórico público da rastreabilidade."
                               : "QR Code interno para manejo e operações do sistema.",
 
-                          textAlign:
-                              TextAlign.center,
+                          textAlign: TextAlign.center,
 
-                          style:
-                              const TextStyle(
-                                color: Color(
-                                  0xFF64748B,
-                                ),
-                                fontSize: 13,
-                                fontWeight:
-                                    FontWeight
-                                        .w600,
-                              ),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -332,10 +257,12 @@ class _AnimalDetailsScreenState
                 icon: const Icon(Icons.history_edu),
                 label: const Text('Ver Histórico Completo'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueGrey,
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -359,7 +286,9 @@ class _AnimalDetailsScreenState
                     if (result == true && mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Evento de manejo registrado com sucesso.'),
+                          content: Text(
+                            'Evento de manejo registrado com sucesso.',
+                          ),
                           backgroundColor: Colors.green,
                         ),
                       );
@@ -368,10 +297,12 @@ class _AnimalDetailsScreenState
                   icon: const Icon(Icons.add_task),
                   label: const Text('Registrar Evento de Manejo'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F8F82),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -381,51 +312,29 @@ class _AnimalDetailsScreenState
             // BOTÃO TRANSFERÊNCIA
             if (isActive)
               Padding(
-                padding:
-                    const EdgeInsets.only(
-                      top: 20,
-                    ),
+                padding: const EdgeInsets.only(top: 20),
 
                 child: SizedBox(
                   width: double.infinity,
 
                   child: ElevatedButton.icon(
-                    onPressed:
-                        () =>
-                            _iniciarTransferencia(
-                              context,
-                              animalId,
-                            ),
+                    onPressed: () => _iniciarTransferencia(context, animalId),
 
-                    icon: const Icon(
-                      Icons.swap_horiz,
+                    icon: const Icon(Icons.swap_horiz),
+
+                    label: const Text("Transferir Animal"),
+
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+
+                      foregroundColor: Colors.white,
+
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-
-                    label: const Text(
-                      "Transferir Animal",
-                    ),
-
-                    style:
-                        ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Colors.indigo,
-
-                          foregroundColor:
-                              Colors.white,
-
-                          padding:
-                              const EdgeInsets.symmetric(
-                                vertical: 15,
-                              ),
-
-                          shape:
-                              RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(
-                                      12,
-                                    ),
-                              ),
-                        ),
                   ),
                 ),
               ),
@@ -433,58 +342,35 @@ class _AnimalDetailsScreenState
             // BOTÃO ABATE
             if (isActive)
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(
-                      vertical: 20,
-                    ),
+                padding: const EdgeInsets.symmetric(vertical: 20),
 
                 child: SizedBox(
                   width: double.infinity,
 
                   child: ElevatedButton.icon(
-                    onPressed:
-                        () => _confirmarAbate(
-                          context,
-                          animalId,
-                        ),
+                    onPressed: () => _confirmarAbate(context, animalId),
 
-                    icon: const Icon(
-                      Icons.gavel,
-                      color: Colors.white,
-                    ),
+                    icon: const Icon(Icons.gavel, color: Colors.white),
 
                     label: const FittedBox(
                       child: Text(
                         "REGISTRAR ABATE / SELO IG",
 
-                        style: TextStyle(
-                          color:
-                              Colors.white,
-                        ),
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
 
-                    style:
-                        ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Colors.redAccent,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 36, 14, 233),
 
-                          foregroundColor:
-                              Colors.white,
+                      foregroundColor: Colors.white,
 
-                          padding:
-                              const EdgeInsets.symmetric(
-                                vertical: 15,
-                              ),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
 
-                          shape:
-                              RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(
-                                      12,
-                                    ),
-                              ),
-                        ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -507,15 +393,11 @@ class _AnimalDetailsScreenState
       decoration: BoxDecoration(
         color: Colors.white,
 
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
 
         boxShadow: [
           BoxShadow(
-            color: Colors.black
-                .withValues(
-                  alpha: 0.04,
-                ),
+            color: Colors.black.withValues(alpha: 0.04),
 
             blurRadius: 10,
           ),
@@ -529,26 +411,14 @@ class _AnimalDetailsScreenState
               CircleAvatar(
                 radius: 30,
 
-                backgroundColor:
-                    isMale
-                        ? Colors.blue
-                            .withValues(
-                              alpha: 0.1,
-                            )
-                        : Colors.pink
-                            .withValues(
-                              alpha: 0.1,
-                            ),
+                backgroundColor: isMale
+                    ? Colors.blue.withValues(alpha: 0.1)
+                    : Colors.pink.withValues(alpha: 0.1),
 
                 child: Icon(
-                  isMale
-                      ? Icons.male
-                      : Icons.female,
+                  isMale ? Icons.male : Icons.female,
 
-                  color:
-                      isMale
-                          ? Colors.blue
-                          : Colors.pink,
+                  color: isMale ? Colors.blue : Colors.pink,
 
                   size: 32,
                 ),
@@ -558,37 +428,26 @@ class _AnimalDetailsScreenState
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
 
                   children: [
                     Text(
                       'Brinco: ${animal['tagId'] ?? 'N/A'}',
 
-                      style:
-                          const TextStyle(
-                            fontSize: 22,
-                            fontWeight:
-                                FontWeight
-                                    .bold,
-                            color: Color(
-                              0xFF1E293B,
-                            ),
-                          ),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
 
                     Text(
-                      animal['breed'] ??
-                          'Raça não informada',
+                      animal['breed'] ?? 'Raça não informada',
 
-                      style:
-                          const TextStyle(
-                            fontSize: 16,
-                            color: Color(
-                              0xFF64748B,
-                            ),
-                          ),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -597,19 +456,12 @@ class _AnimalDetailsScreenState
           ),
 
           const Padding(
-            padding:
-                EdgeInsets.symmetric(
-                  vertical: 16,
-                ),
+            padding: EdgeInsets.symmetric(vertical: 16),
 
             child: Divider(),
           ),
 
-          _infoRow(
-            Icons.cake,
-            'Nascimento',
-            dataNasc,
-          ),
+          _infoRow(Icons.cake, 'Nascimento', dataNasc),
 
           const SizedBox(height: 12),
 
@@ -624,9 +476,7 @@ class _AnimalDetailsScreenState
           _infoRow(
             Icons.agriculture,
             'Propriedade Atual',
-            animal['property']
-                    ?['farmName'] ??
-                'Desconhecida',
+            animal['property']?['farmName'] ?? 'Desconhecida',
           ),
         ],
       ),
@@ -638,7 +488,8 @@ class _AnimalDetailsScreenState
 
     setState(() => _isExportingImage = true);
     try {
-      final boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final boundary =
+          _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       final image = await boundary.toImage(pixelRatio: 3);
       final byteData = await image.toByteData(format: ImageByteFormat.png);
 
@@ -649,7 +500,8 @@ class _AnimalDetailsScreenState
       final pngBytes = byteData.buffer.asUint8List();
       final outputBytes = asJpg ? _convertPngToJpg(pngBytes) : pngBytes;
       final extension = asJpg ? 'jpg' : 'png';
-      final filename = 'qr_animal_${animalId}_${DateTime.now().millisecondsSinceEpoch}.$extension';
+      final filename =
+          'qr_animal_${animalId}_${DateTime.now().millisecondsSinceEpoch}.$extension';
       final savedPath = await saveImageBytes(outputBytes, filename, extension);
 
       if (!mounted) return;
@@ -683,20 +535,10 @@ class _AnimalDetailsScreenState
     return Uint8List.fromList(img.encodeJpg(decoded, quality: 90));
   }
 
-  Widget _infoRow(
-    IconData icon,
-    String label,
-    String value,
-  ) {
+  Widget _infoRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: const Color(
-            0xFF94A3B8,
-          ),
-        ),
+        Icon(icon, size: 20, color: AppColors.textMuted),
 
         const SizedBox(width: 12),
 
@@ -704,12 +546,7 @@ class _AnimalDetailsScreenState
           child: Text(
             label,
 
-            style: const TextStyle(
-              color: Color(
-                0xFF64748B,
-              ),
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
           ),
         ),
 
@@ -717,11 +554,8 @@ class _AnimalDetailsScreenState
           value,
 
           style: const TextStyle(
-            color: Color(
-              0xFF334155,
-            ),
-            fontWeight:
-                FontWeight.bold,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
             fontSize: 14,
           ),
         ),
@@ -730,83 +564,55 @@ class _AnimalDetailsScreenState
   }
 
   // CONFIRMAÇÃO DE ABATE
-  void _confirmarAbate(
-    BuildContext context,
-    String id,
-  ) {
+  void _confirmarAbate(BuildContext context, String id) {
     showDialog(
       context: context,
 
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text(
-              "Confirmar Abate?",
-            ),
+      builder: (ctx) => AlertDialog(
+        title: const Text("Confirmar Abate?"),
 
-            content: const Text(
-              "Isso finalizará o ciclo do animal e validará a Indicação Geográfica de Tauá.",
-            ),
+        content: const Text(
+          "Isso finalizará o ciclo do animal e validará a Indicação Geográfica de Tauá.",
+        ),
 
-            actions: [
-              TextButton(
-                onPressed:
-                    () => Navigator.pop(
-                      ctx,
-                    ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
 
-                child: const Text(
-                  "Cancelar",
-                ),
-              ),
-
-              ElevatedButton(
-                child: const Text(
-                  "Confirmar",
-                ),
-
-                onPressed: () async {
-                  Navigator.pop(ctx);
-
-                  final res =
-                      await _animalService
-                          .slaughterAnimal(
-                            id,
-                          );
-
-                  if (res['success']) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            res['data']['message'],
-                          ),
-                        ),
-                      );
-
-                      Navigator.pop(
-                        context,
-                      );
-                    }
-                  } else {
-                    if (mounted) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            res['message'] ??
-                                'Erro ao registrar abate',
-                          ),
-                        ),
-                      );
-                    }
-                  }
-                },
-              ),
-            ],
+            child: const Text("Cancelar"),
           ),
+
+          ElevatedButton(
+            child: const Text("Confirmar"),
+
+            onPressed: () async {
+              Navigator.pop(ctx);
+
+              final res = await _animalService.slaughterAnimal(id);
+
+              if (res['success']) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(res['data']['message'])),
+                  );
+
+                  Navigator.pop(context);
+                }
+              } else {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        res['message'] ?? 'Erro ao registrar abate',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -833,50 +639,32 @@ class _AnimalDetailsScreenState
 
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => AnimalHistoryScreen(events: events),
-      ),
+      MaterialPageRoute(builder: (_) => AnimalHistoryScreen(events: events)),
     );
   }
 
   // TRANSFERÊNCIA
-  void _iniciarTransferencia(
-    BuildContext context,
-    String animalId,
-  ) async {
+  void _iniciarTransferencia(BuildContext context, String animalId) async {
     final result = await Navigator.push(
       context,
 
-      MaterialPageRoute(
-        builder:
-            (context) =>
-                const QRScannerScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const QRScannerScreen()),
     );
 
-    if (result != null &&
-        result is Map<String, dynamic>) {
-      final success =
-          await _animalService
-              .transferAnimal(
-                animalId: animalId,
+    if (result != null && result is Map<String, dynamic>) {
+      final success = await _animalService.transferAnimal(
+        animalId: animalId,
 
-                destinationPropertyId:
-                    result['propertyId'],
+        destinationPropertyId: result['propertyId'],
 
-                destinationProducerId:
-                    result['producerId'],
-              );
+        destinationProducerId: result['producerId'],
+      );
 
       if (success['success']) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                'Transferência concluída com sucesso!',
-              ),
+              content: Text('Transferência concluída com sucesso!'),
             ),
           );
 
@@ -884,14 +672,9 @@ class _AnimalDetailsScreenState
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                success['message'] ??
-                    'Erro na transferência',
-              ),
+              content: Text(success['message'] ?? 'Erro na transferência'),
             ),
           );
         }

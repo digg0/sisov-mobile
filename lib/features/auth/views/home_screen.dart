@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../../animals/services/animal_service.dart';
 import '../../animals/views/animal_search_screen.dart';
@@ -23,8 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingProfile = true;
   int _cachedSlaughteredCount = 0;
 
-  final Color primaryTeal = const Color(0xFF0F8F82);
-  final Color bgGray = const Color(0xFFF8FAFC);
+  
 
   @override
   void initState() {
@@ -117,16 +117,14 @@ class _HomeScreenState extends State<HomeScreen> {
     
     try {
       final animals = await _animalService.getAnimals();
-      if (animals is List) {
-        final count = animals
-            .where((animal) => 
-                animal is Map && 
-                animal['status'] == 'SLAUGHTERED'
-            )
-            .length;
-        return count;
-      }
-    } catch (_) {
+      final count = animals
+          .where((animal) => 
+              animal is Map && 
+              animal['status'] == 'SLAUGHTERED'
+          )
+          .length;
+      return count;
+        } catch (_) {
       
     }
 
@@ -171,17 +169,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
+      value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent, 
         statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: bgGray, 
+        systemNavigationBarColor: AppColors.background, 
         systemNavigationBarIconBrightness: Brightness.dark, 
       ),
       child: Scaffold(
-        backgroundColor: bgGray,
+        backgroundColor: AppColors.background,
         drawer: _buildDrawer(),
         appBar: AppBar(
-          backgroundColor: primaryTeal,
+          backgroundColor: AppColors.primary,
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.white),
           title: const Text(
@@ -200,10 +198,10 @@ class _HomeScreenState extends State<HomeScreen> {
           
           bottom: true,
           child: _isLoadingProfile
-              ? Center(child: CircularProgressIndicator(color: primaryTeal))
+              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
               : RefreshIndicator(
             onRefresh: _loadUserData,
-            color: primaryTeal,
+            color: AppColors.primary,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
@@ -221,14 +219,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const Text(
                           "Ações Rápidas",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                         ),
                         const SizedBox(height: 16),
                         _buildQuickActions(),
                         const SizedBox(height: 32),
                         const Text(
                           "Resumo do Rebanho",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                         ),
                         const SizedBox(height: 16),
                         _buildStatusItem(
@@ -297,9 +295,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
-      decoration: BoxDecoration(
-        color: primaryTeal,
-        borderRadius: const BorderRadius.only(
+      decoration: const BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
         ),
@@ -333,18 +331,18 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisSpacing: 14,
       mainAxisSpacing: 14,
       children: [
-        _actionButton("Novo Ovino", Icons.add_circle_outline, Colors.teal, () async {
+        _actionButton("Novo Ovino", Icons.add_circle_outline, AppColors.primary, () async {
           await Navigator.pushNamed(context, '/select-property');
           _loadUserData();
         }),
-        _actionButton("Ler QR Code", Icons.qr_code_scanner, Colors.blue, _scanAnimalQRCode),
-        _actionButton("Transferência", Icons.sync_alt, Colors.indigo, () {
+        _actionButton("Ler QR Code", Icons.qr_code_scanner, AppColors.primary, _scanAnimalQRCode),
+        _actionButton("Transferência", Icons.sync_alt, AppColors.primary, () {
           _navTo(const AnimalSearchScreen(isTransferMode: true));
         }),
-        _actionButton("Rebanho", Icons.agriculture, Colors.green, () {
+        _actionButton("Rebanho", Icons.agriculture, AppColors.primary, () {
           _navTo(const AnimalSearchScreen(isTransferMode: false));
         }),
-        _actionButton("Nova Propriedade", Icons.location_on, Colors.orange, () {
+        _actionButton("Nova Propriedade", Icons.location_on, AppColors.primary, () {
           _navTo(const PropertyCreateScreen());
         }),
       ],
@@ -365,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+            border: Border.all(color: AppColors.border, width: 1.5),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -376,7 +374,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Icon(icon, color: color, size: 26),
               ),
               const SizedBox(height: 10),
-              Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+              Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
             ],
           ),
         ),
@@ -402,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
+              border: Border.all(color: AppColors.borderSoft),
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
             ),
             child: Row(
@@ -413,10 +411,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Icon(icon, color: color, size: 22),
                 ),
                 const SizedBox(width: 16),
-                Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF475569)))),
-                Text(count, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E293B))),
+                Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: AppColors.textSecondary))),
+                Text(count, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
                 const SizedBox(width: 8),
-                const Icon(Icons.chevron_right, color: Color(0xFFCBD5E1), size: 20),
+                const Icon(Icons.chevron_right, color: AppColors.borderSoft, size: 20),
               ],
             ),
           ),
@@ -435,10 +433,10 @@ class _HomeScreenState extends State<HomeScreen> {
           // saiba exatamente o tamanho da barra de status.
           UserAccountsDrawerHeader(
             margin: EdgeInsets.zero, // Remove margens que podem causar desalinhamento
-            decoration: BoxDecoration(color: primaryTeal),
+            decoration: const BoxDecoration(color: AppColors.primary),
             currentAccountPicture: const CircleAvatar(
               backgroundColor: Colors.white,
-              child: Icon(Icons.person, size: 40, color: Color(0xFF0F8F82)),
+              child: Icon(Icons.person, size: 40, color: AppColors.primary),
             ),
             accountName: Text(
               _userProfile?['name'] ?? 'Carregando...',
@@ -485,7 +483,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _drawerItem(IconData icon, String title, VoidCallback onTap, {Color? color}) {
     return ListTile(
-      leading: Icon(icon, color: color ?? primaryTeal),
+      leading: Icon(icon, color: color ?? AppColors.primary),
       title: Text(title, style: TextStyle(color: color)),
       onTap: () {
         HapticFeedback.lightImpact();

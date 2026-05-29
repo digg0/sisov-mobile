@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/theme/app_theme.dart';
 import 'features/animals/views/animal_search_screen.dart';
 import 'features/animals/views/select_property_animal_screen.dart';
 import 'features/auth/views/login_screen.dart';
@@ -19,10 +20,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'SISOV',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
 
       initialRoute: '/login',
       routes: {
@@ -32,7 +30,8 @@ class MyApp extends StatelessWidget {
         '/properties': (context) => const PropertiesListScreen(),
         '/properties/add': (context) => const PropertyCreateScreen(),
         '/select-property': (context) => const SelectPropertyForAnimalScreen(),
-        '/search-animal': (context) => const AnimalSearchScreen(isTransferMode: false),
+        '/search-animal': (context) =>
+            const AnimalSearchScreen(isTransferMode: false),
       },
     );
   }

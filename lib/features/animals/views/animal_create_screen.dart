@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/theme/app_theme.dart';
 import '../services/animal_service.dart';
 
 class AnimalCreateScreen extends StatefulWidget {
@@ -23,8 +24,6 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
   String _selectedSex = 'FEMALE';
   DateTime? _selectedDate; // Variável para guardar a data real pro banco
 
-  final Color primaryTeal = const Color(0xFF0F8F82);
-
   // --- Função para abrir o Calendário ---
   Future<void> _selectDate() async {
     // Tira o foco de qualquer campo de texto antes de abrir o calendário
@@ -40,9 +39,9 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: primaryTeal,
+              primary: AppColors.primary,
               onPrimary: Colors.white,
-              onSurface: const Color(0xFF334155),
+              onSurface: AppColors.textPrimary,
             ),
           ),
           child: child!,
@@ -91,10 +90,10 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Dados do Ovino', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: primaryTeal,
+        backgroundColor: AppColors.primary,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -177,7 +176,7 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text('Finalizar Cadastro', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryTeal,
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     elevation: 2,
                   ),
@@ -195,7 +194,7 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
       ),
     );
   }
@@ -214,8 +213,8 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
   InputDecoration _inputStyle(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
-      prefixIcon: Icon(icon, color: primaryTeal),
+      labelStyle: const TextStyle(color: AppColors.textMuted),
+      prefixIcon: Icon(icon, color: AppColors.primary),
       border: InputBorder.none,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
@@ -234,17 +233,17 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
         decoration: BoxDecoration(
           color: isSelected ? color.withOpacity(0.1) : Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isSelected ? color : const Color(0xFFE2E8F0), width: 2),
+          border: Border.all(color: isSelected ? color : AppColors.border, width: 2),
           boxShadow: isSelected ? [] : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)],
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? color : const Color(0xFF94A3B8), size: 28),
+            Icon(icon, color: isSelected ? color : AppColors.textMuted, size: 28),
             const SizedBox(height: 8),
             Text(
                 label,
                 style: TextStyle(
-                    color: isSelected ? color : const Color(0xFF64748B),
+                    color: isSelected ? color : AppColors.textSecondary,
                     fontWeight: FontWeight.bold,
                     fontSize: 15
                 )

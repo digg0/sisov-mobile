@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 
 import '../models/property_model.dart';
 import '../services/property_service.dart';
@@ -22,8 +23,6 @@ class _PropertiesListScreenState
   final _propertyService =
       PropertyService();
 
-  final Color primaryTeal =
-      const Color(0xFF0F8F82);
 
   // Simulação do perfil carregado
   // Idealmente isso vem do AuthService
@@ -46,7 +45,7 @@ class _PropertiesListScreenState
   ) {
     return Scaffold(
       backgroundColor:
-          const Color(0xFFF8FAFC),
+          AppColors.background,
 
       appBar: AppBar(
         title: const Text(
@@ -60,7 +59,7 @@ class _PropertiesListScreenState
         ),
 
         backgroundColor:
-            primaryTeal,
+            AppColors.primary,
 
         iconTheme:
             const IconThemeData(
@@ -69,28 +68,24 @@ class _PropertiesListScreenState
       ),
 
       // BOTÃO FLUTUANTE
-      floatingActionButton:
-          FloatingActionButton(
-            backgroundColor:
-                primaryTeal,
-
-            child: const Icon(
-              Icons.add,
-              color: Colors.white,
-              size: 30,
-            ),
-
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                '/properties/add',
-              ).then((value) {
-                if (value == true) {
-                  setState(() {});
-                }
-              });
-            },
-          ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.primary,
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 30,
+        ),
+        onPressed: () {
+          Navigator.pushNamed(
+            context,
+            '/properties/add',
+          ).then((value) {
+            if (value == true) {
+              setState(() {});
+            }
+          });
+        },
+      ),
 
       body:
           FutureBuilder<
@@ -164,9 +159,7 @@ class _PropertiesListScreenState
 
                           side:
                               const BorderSide(
-                                color: Color(
-                                  0xFFE2E8F0,
-                                ),
+                                color: AppColors.border,
                               ),
                         ),
 
@@ -184,18 +177,16 @@ class _PropertiesListScreenState
                       leading:
                           CircleAvatar(
                             backgroundColor:
-                                primaryTeal
-                                    .withValues(
-                                      alpha:
-                                          0.1,
-                                    ),
+                                AppColors.primary.withOpacity(
+                                  0.1,
+                                ),
 
                             child: Icon(
                               Icons
                                   .location_on,
 
                               color:
-                                  primaryTeal,
+                                  AppColors.primary,
                             ),
                           ),
 
@@ -223,9 +214,7 @@ class _PropertiesListScreenState
                                       .qr_code_2,
 
                                   color:
-                                      Color(
-                                        0xFF0F8F82,
-                                      ),
+                                      AppColors.primary,
                                 ),
 
                             onPressed: () {

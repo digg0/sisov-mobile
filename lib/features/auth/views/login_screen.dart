@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 // Substitua pelos caminhos corretos das pastas que criamos
 import '../services/auth_service.dart';
 import '../../../core/utils/validators.dart';
@@ -24,8 +25,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // 4. Instância da nossa API
   final _authService = AuthService();
-
-  final Color primaryTeal = const Color(0xFF0F8F82);
 
   // Função que faz o meio de campo entre a UI e a API
   void _fazerLogin() async {
@@ -67,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: primaryTeal,
+      backgroundColor: AppColors.primary,
       resizeToAvoidBottomInset: false,
       body: Column(
         children: [
@@ -125,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const Text(
                       'E-mail', // Alterado de Usuário para E-mail (como pede a API)
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 8),
                     TextFormField( // Alterado para TextFormField para suportar validator
@@ -139,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const Text(
                       'Senha',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -151,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            color: const Color(0xFF94A3B8),
+                            color: AppColors.textMuted,
                             size: 20,
                           ),
                           onPressed: () => setState(() => _obscureText = !_obscureText),
@@ -169,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _fazerLogin,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryTeal,
+                          backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -209,8 +208,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           onTap: () => Navigator.pushNamed(context, '/register'),
                           child: Text(
                             'Cadastre-se',
-                            style: TextStyle(
-                              color: primaryTeal,
+                            style: const TextStyle(
+                              color: AppColors.primary,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -232,22 +231,22 @@ class _LoginScreenState extends State<LoginScreen> {
   InputDecoration _inputStyle(String hint, IconData icon, {Widget? suffixIcon}) {
     return InputDecoration(
       hintText: hint,
-      prefixIcon: Icon(icon, color: const Color(0xFF94A3B8), size: 22),
+      prefixIcon: Icon(icon, color: AppColors.textMuted, size: 22),
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: const Color(0xFFF8FAFC),
+      fillColor: AppColors.background,
       contentPadding: const EdgeInsets.symmetric(vertical: 18),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: primaryTeal, width: 2),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
       // Adicionado para a borda de erro ficar bonita também
       errorBorder: OutlineInputBorder(

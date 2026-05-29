@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 import '../services/animal_service.dart';
 import 'animal_details_screen.dart'; // Importa a nova tela!
 
@@ -25,7 +26,6 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
   List<dynamic> _filteredAnimals = [];
   String? _errorMessage;
 
-  final Color primaryTeal = const Color(0xFF0F8F82);
 
   @override
   void initState() {
@@ -80,7 +80,7 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
           widget.showSlaughtered
@@ -90,7 +90,7 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
                   : 'Meu Rebanho',
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: primaryTeal,
+        backgroundColor: AppColors.primary,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -100,7 +100,7 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: primaryTeal,
+              color: AppColors.primary,
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(24),
                 bottomRight: Radius.circular(24),
@@ -124,7 +124,7 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
           // Área de Resultados (Lista de todos os animais)
           Expanded(
             child: _isLoading 
-              ? Center(child: CircularProgressIndicator(color: primaryTeal))
+              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
               : _buildResultArea(),
           ),
         ],
@@ -175,10 +175,10 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
             ),
             title: Text(
               'Brinco: ${animal['tagId'] ?? 'N/A'}', 
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B))
+              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)
             ),
             subtitle: Text(animal['breed'] ?? 'Raça não informada'),
-            trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+            trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
             onTap: () {
               Navigator.push(
                 context,

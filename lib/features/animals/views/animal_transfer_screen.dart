@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 import 'dart:convert';
 import '../services/animal_service.dart';
 import 'qr_scanner_screen.dart';
@@ -24,7 +25,6 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
   final _producerIdController = TextEditingController();
   final _propertyIdController = TextEditingController();
   bool _isLoading = false;
-  final Color primaryTeal = const Color(0xFF0F8F82);
 
   void _escanearDestino() async {
     // 1. Abre o scanner
@@ -106,10 +106,10 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Transferir Animal', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: primaryTeal,
+        backgroundColor: AppColors.primary,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
@@ -129,8 +129,8 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
                 icon: const Icon(Icons.qr_code_scanner, size: 28),
                 label: const Text("ESCANEAR FAZENDA DESTINO", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: primaryTeal,
-                  side: BorderSide(color: primaryTeal, width: 2),
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary, width: 2),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
               ),
@@ -160,7 +160,7 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
               height: 55,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _executarTransferencia,
-                style: ElevatedButton.styleFrom(backgroundColor: primaryTeal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text("CONFIRMAR TRANSFERÊNCIA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -175,10 +175,10 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
   Widget _buildAnimalHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: primaryTeal.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
+      decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
       child: Row(
         children: [
-          Icon(Icons.pets, color: primaryTeal, size: 30),
+          const Icon(Icons.pets, color: AppColors.primary, size: 30),
           const SizedBox(width: 15),
           Text(widget.animalName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ],
@@ -190,7 +190,7 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
         const SizedBox(height: 8),
         TextField(
           controller: controller,

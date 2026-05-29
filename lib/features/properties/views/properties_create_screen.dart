@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 import '../services/property_service.dart';
 import '../../../core/utils/validators.dart';
 
@@ -18,7 +19,6 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
   final _stateController = TextEditingController();
 
   bool _isLoading = false;
-  final Color primaryTeal = const Color(0xFF0F8F82);
 
   void _salvar() async {
     if (_formKey.currentState!.validate()) {
@@ -54,7 +54,7 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Nova Propriedade', style: TextStyle(color: Colors.white)),
-        backgroundColor: primaryTeal,
+        backgroundColor: AppColors.primary,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
@@ -122,7 +122,7 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _salvar,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryTeal,
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isLoading
@@ -140,7 +140,7 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
     );
   }
 
@@ -150,10 +150,10 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
       prefixIcon: Icon(icon, color: Colors.grey),
       counterText: "", // Esconde o contador de caracteres do UF
       filled: true,
-      fillColor: const Color(0xFFF8FAFC),
+      fillColor: AppColors.background,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../services/animal_service.dart';
 
 class AnimalManagementEventScreen extends StatefulWidget {
@@ -65,9 +66,9 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: const Color(0xFF0F8F82),
+              primary: AppColors.primary,
               onPrimary: Colors.white,
-              onSurface: const Color(0xFF334155),
+              onSurface: AppColors.textPrimary,
             ),
           ),
           child: child!,
@@ -89,7 +90,7 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Selecione uma data para o evento.'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -113,7 +114,7 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Evento de manejo registrado com sucesso.'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
       Navigator.pop(context, true);
@@ -124,7 +125,7 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(result['message'] ?? 'Falha ao registrar o evento.'),
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.danger,
       ),
     );
   }
@@ -142,9 +143,9 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registrar Evento de Manejo'),
-        backgroundColor: const Color(0xFF0F8F82),
+        backgroundColor: AppColors.primary,
       ),
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -175,7 +176,7 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F8F82),
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   child: _isSaving
@@ -186,7 +187,7 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
               const SizedBox(height: 16),
               const Text(
                 'Observação: o backend atual expõe apenas leitura de histórico. A gravação de eventos depende de endpoint de eventos de manejo.',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
               ),
             ],
           ),
@@ -201,10 +202,10 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.border),
       ),
       child: DropdownButtonFormField<String>(
-        value: _selectedType,
+        initialValue: _selectedType,
         items: _eventTypes
             .map(
               (item) => DropdownMenuItem(
@@ -231,13 +232,13 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 16, color: Color(0xFF334155))),
-            const Icon(Icons.calendar_month, color: Color(0xFF0F8F82)),
+            Text(label, style: const TextStyle(fontSize: 16, color: AppColors.textPrimary)),
+            const Icon(Icons.calendar_month, color: AppColors.primary),
           ],
         ),
       ),
@@ -250,14 +251,14 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.border),
       ),
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
         decoration: InputDecoration(
-          icon: Icon(icon, color: const Color(0xFF0F8F82)),
+          icon: Icon(icon, color: AppColors.primary),
           labelText: label,
           border: InputBorder.none,
         ),
