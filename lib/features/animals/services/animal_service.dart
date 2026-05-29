@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../../core/api/api_client.dart';
+import '../models/management_event_model.dart';
 
 class AnimalService {
 
@@ -182,9 +183,59 @@ class AnimalService {
     }
   }
 
+  Future<Map<String, dynamic>> registerManagementEvent(
+    String animalId,
+    Map<String, dynamic> eventData,
+  ) async {
+    const endpoints = [
+      '/animals/{id}/management-events',
+      '/animals/{id}/management-event',
+      '/animals/{id}/events',
+    ];
+
+    for (final rawEndpoint in endpoints) {
+      final endpoint = rawEndpoint.replaceFirst('{id}', animalId);
+
+      try {
+        final response = await ApiClient.post(endpoint, eventData);
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          return {
+            'success': true,
+            'data': jsonDecode(response.body),
+          };
+        }
+
+        if (response.statusCode == 404) {
+          continue;
+        }
+
+        final error = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': error['message'] ?? 'Erro ao registrar o evento de manejo.',
+        };
+      } catch (e) {
+        if (rawEndpoint == endpoints.last) {
+          return {
+            'success': false,
+            'message':
+                'Não foi possível registrar o evento de manejo. Verifique se o endpoint existe no backend.',
+          };
+        }
+      }
+    }
+
+    return {
+      'success': false,
+      'message':
+          'Endpoint de evento de manejo não disponível no backend.',
+    };
+  }
+
   /// Procura o histórico completo
   /// (Eventos e Movimentações)
-  Future<Map<String, dynamic>>
+  Future<List<ManagementEventModel>>
   getFullHistory(
     String animalId,
   ) async {
@@ -195,23 +246,43 @@ class AnimalService {
           );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': jsonDecode(response.body),
-        };
+        final body = jsonDecode(response.body);
+        final events = <ManagementEventModel>[];
+
+        if (body is Map<String, dynamic>) {
+          if (body['managementEvents'] is List) {
+            for (final item in body['managementEvents']) {
+              if (item is Map<String, dynamic>) {
+                events.add(ManagementEventModel.fromJson(item));
+              }
+            }
+          } else if (body['events'] is List) {
+            for (final item in body['events']) {
+              if (item is Map<String, dynamic>) {
+                events.add(ManagementEventModel.fromJson(item));
+              }
+            }
+          } else if (body['data'] is List) {
+            for (final item in body['data']) {
+              if (item is Map<String, dynamic>) {
+                events.add(ManagementEventModel.fromJson(item));
+              }
+            }
+          }
+        } else if (body is List) {
+          for (final item in body) {
+            if (item is Map<String, dynamic>) {
+              events.add(ManagementEventModel.fromJson(item));
+            }
+          }
+        }
+
+        return events;
       }
 
-      return {
-        'success': false,
-        'message':
-            'Erro ao carregar histórico.',
-      };
+      return [];
     } catch (e) {
-      return {
-        'success': false,
-        'message':
-            'Erro de conexão ao carregar histórico.',
-      };
+      return [];
     }
   }
 }

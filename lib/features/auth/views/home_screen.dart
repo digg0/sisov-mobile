@@ -185,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.white),
           title: const Text(
-            'SISOV Dashboard',
+            'Tela Inicial',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           actions: [
@@ -260,6 +260,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           _cachedSlaughteredCount.toString().padLeft(2, '0'),
                           Icons.verified,
                           Colors.purple,
+                          onTap: () {
+                            _navTo(const AnimalSearchScreen(
+                              isTransferMode: false,
+                              showSlaughtered: true,
+                            ));
+                          },
                         ),
                         // Espaço extra no final para não "colar" na borda inferior do celular
                         const SizedBox(height: 20),
@@ -378,14 +384,19 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatusItem(String title, String count, IconData icon, Color color) {
+  Widget _buildStatusItem(String title, String count, IconData icon, Color color, {VoidCallback? onTap}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       child: Material(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
-          onTap: () => HapticFeedback.lightImpact(),
+          onTap: onTap == null
+              ? null
+              : () {
+                  HapticFeedback.lightImpact();
+                  onTap();
+                },
           borderRadius: BorderRadius.circular(18),
           child: Container(
             padding: const EdgeInsets.all(16),

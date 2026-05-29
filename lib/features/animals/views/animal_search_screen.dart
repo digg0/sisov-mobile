@@ -3,7 +3,14 @@ import '../services/animal_service.dart';
 import 'animal_details_screen.dart'; // Importa a nova tela!
 
 class AnimalSearchScreen extends StatefulWidget {
-  const AnimalSearchScreen({super.key, required bool isTransferMode});
+  const AnimalSearchScreen({
+    super.key,
+    required this.isTransferMode,
+    this.showSlaughtered = false,
+  });
+
+  final bool isTransferMode;
+  final bool showSlaughtered;
 
   @override
   State<AnimalSearchScreen> createState() => _AnimalSearchScreenState();
@@ -33,11 +40,18 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
     });
 
     try {
-      
-      final data = await _animalService.getAnimals(); 
+      final data = await _animalService.getAnimals();
+      final loadedAnimals = data.where((animal) {
+        final status = animal['status']?.toString().toUpperCase() ?? '';
+        if (widget.showSlaughtered) {
+          return status == 'SLAUGHTERED';
+        }
+        return status == 'ACTIVE';
+      }).toList();
+
       setState(() {
-        _allAnimals = data; 
-        _filteredAnimals = data;
+        _allAnimals = loadedAnimals;
+        _filteredAnimals = loadedAnimals;
         _isLoading = false;
       });
     } catch (e) {
@@ -68,7 +82,14 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Meu Rebanho', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          widget.showSlaughtered
+              ? 'Finalizados / Abatidos'
+              : widget.isTransferMode
+                  ? 'Transferência'
+                  : 'Meu Rebanho',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: primaryTeal,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),

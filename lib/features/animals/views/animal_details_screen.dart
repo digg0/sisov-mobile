@@ -8,6 +8,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/utils/image_exporter.dart';
 import '../services/animal_service.dart';
+import 'animal_history_screen.dart';
+import 'animal_management_event_screen.dart';
 import 'qr_scanner_screen.dart';
 
 class AnimalDetailsScreen extends StatefulWidget {
@@ -174,10 +176,10 @@ class _AnimalDetailsScreenState
             Center(
               child: Column(
                 children: [
-                  const Text(
-                    "QR Code de Rastreabilidade",
+                  Text(
+                    isSlaughtered ? "QR Code de Rastreabilidade" : "QR Code de Manejo",
 
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontWeight:
                           FontWeight.bold,
                       fontSize: 18,
@@ -321,6 +323,58 @@ class _AnimalDetailsScreenState
                 ],
               ),
             ),
+
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _openFullHistory(animalId),
+                icon: const Icon(Icons.history_edu),
+                label: const Text('Ver Histórico Completo'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueGrey,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            if (isActive)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final result = await Navigator.push<bool?>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AnimalManagementEventScreen(
+                          animalId: animalId,
+                          animalName: animal['tagId']?.toString() ?? 'Animal',
+                        ),
+                      ),
+                    );
+
+                    if (result == true && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Evento de manejo registrado com sucesso.'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.add_task),
+                  label: const Text('Registrar Evento de Manejo'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0F8F82),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
 
             const SizedBox(height: 30),
 
@@ -753,6 +807,35 @@ class _AnimalDetailsScreenState
               ),
             ],
           ),
+    );
+  }
+
+  Future<void> _openFullHistory(String animalId) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final events = await _animalService.getFullHistory(animalId);
+    if (mounted) Navigator.pop(context);
+    if (!mounted) return;
+
+    if (events.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Histórico não encontrado.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AnimalHistoryScreen(events: events),
+      ),
     );
   }
 
