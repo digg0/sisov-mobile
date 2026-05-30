@@ -186,7 +186,7 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
               ),
               const SizedBox(height: 16),
               const Text(
-                'Observação: o backend atual expõe apenas leitura de histórico. A gravação de eventos depende de endpoint de eventos de manejo.',
+                'Registre eventos de manejo diretamente no SISOV: vacinas, pesagens, alimentação, cobertura e outros cuidados de campo.',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 12),
               ),
             ],

@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../services/animal_service.dart';
-import 'animal_details_screen.dart'; // Importa a nova tela!
+import 'animal_details_screen.dart';
+import 'qr_scanner_screen.dart';
 
 class AnimalSearchScreen extends StatefulWidget {
   const AnimalSearchScreen({
@@ -75,6 +78,104 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
         return tag.contains(lowerQuery) || breed.contains(lowerQuery);
       }).toList();
     });
+  }
+
+  Future<String?> _getAnimalId(Map<String, dynamic> animal) async {
+    final String? id = animal['sisovId']?.toString();
+    if (id != null && id.isNotEmpty) return id;
+
+    final String? fallbackId = animal['id']?.toString();
+    if (fallbackId != null && fallbackId.isNotEmpty) return fallbackId;
+
+    final String? underscoreId = animal['_id']?.toString();
+    if (underscoreId != null && underscoreId.isNotEmpty) return underscoreId;
+
+    final String? animalId = animal['animalId']?.toString();
+    if (animalId != null && animalId.isNotEmpty) return animalId;
+
+    return null;
+  }
+
+  Future<void> _iniciarTransferenciaComDestino(Map<String, dynamic> animal) async {
+    final animalId = await _getAnimalId(animal);
+    if (animalId == null || animalId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro: ID do animal não encontrado'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+    );
+
+    Map<String, dynamic>? destinationData;
+    if (result is Map<String, dynamic>) {
+      destinationData = result;
+    } else if (result is String) {
+      try {
+        final decoded = jsonDecode(result);
+        if (decoded is Map<String, dynamic>) {
+          destinationData = decoded;
+        }
+      } catch (_) {
+        destinationData = null;
+      }
+    }
+
+    if (destinationData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('QR inválido para transferência'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final destinationProducerId = destinationData['producerId']?.toString() ?? '';
+    final destinationPropertyId = destinationData['propertyId']?.toString() ?? '';
+
+    if (destinationProducerId.isEmpty || destinationPropertyId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('QR de destino não contém produtor ou propriedade válidos'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    try {
+      final success = await _animalService.transferAnimal(
+        animalId: animalId,
+        destinationPropertyId: destinationPropertyId,
+        destinationProducerId: destinationProducerId,
+      );
+
+      if (!mounted) return;
+
+      if (success['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Transferência concluída com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success['message'] ?? 'Erro na transferência'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao processar transferência: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -180,10 +281,14 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
             subtitle: Text(animal['breed'] ?? 'Raça não informada'),
             trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => AnimalDetailsScreen(animal: animal)),
-              );
+              if (widget.isTransferMode) {
+                _iniciarTransferenciaComDestino(animal);
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AnimalDetailsScreen(animal: animal)),
+                );
+              }
             },
           ),
         );

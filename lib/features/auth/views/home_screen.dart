@@ -64,13 +64,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     String scannedText = result.toString();
     String animalId = "";
+    bool isManagementQR = false;
 
     scannedText = scannedText.trim();
 
     if (scannedText.contains("sisov://manage/")) {
       animalId = scannedText.replaceAll("sisov://manage/", "").trim();
+      isManagementQR = true;
     } else if (scannedText.contains("https://sisov.com.br/rastreabilidade/")) {
       animalId = scannedText.replaceAll("https://sisov.com.br/rastreabilidade/", "").trim();
+      isManagementQR = false;
     }
 
     if (animalId.isNotEmpty) {
@@ -80,7 +83,22 @@ class _HomeScreenState extends State<HomeScreen> {
       final res = await _animalService.getAnimal(animalId);
 
       if (res['success']) {
-        _navTo(AnimalDetailsScreen(animal: res['data']));
+        final animal = res['data'];
+        
+        // If it's a management QR code, verify ownership
+        if (isManagementQR) {
+          final currentUserId = _userProfile?['id']?.toString();
+          final animalProducerId = animal['producerId']?.toString() ?? 
+                                   animal['property']?['producerId']?.toString();
+          
+          if (currentUserId == null || currentUserId != animalProducerId) {
+            _loadUserData();
+            _mostrarErro("Acesso negado: Este animal pertence a outro produtor.");
+            return;
+          }
+        }
+        
+        _navTo(AnimalDetailsScreen(animal: animal));
       } else {
         _loadUserData();
         _mostrarErro("Animal não localizado.");

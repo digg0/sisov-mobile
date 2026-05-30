@@ -11,7 +11,6 @@ import '../../../core/utils/image_exporter.dart';
 import '../services/animal_service.dart';
 import 'animal_history_screen.dart';
 import 'animal_management_event_screen.dart';
-import 'qr_scanner_screen.dart';
 
 class AnimalDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> animal;
@@ -309,36 +308,6 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
 
             const SizedBox(height: 30),
 
-            // BOTÃO TRANSFERÊNCIA
-            if (isActive)
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-
-                child: SizedBox(
-                  width: double.infinity,
-
-                  child: ElevatedButton.icon(
-                    onPressed: () => _iniciarTransferencia(context, animalId),
-
-                    icon: const Icon(Icons.swap_horiz),
-
-                    label: const Text("Transferir Animal"),
-
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-
-                      foregroundColor: Colors.white,
-
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
             // BOTÃO ABATE
             if (isActive)
               Padding(
@@ -508,8 +477,8 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('QR Code exportado: $filename\n$savedPath'),
-          backgroundColor: Colors.green,
+          content: Text(savedPath),
+          backgroundColor: AppColors.success,
           duration: const Duration(seconds: 5),
         ),
       );
@@ -518,7 +487,7 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Falha ao exportar QR: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.danger,
           ),
         );
       }
@@ -643,42 +612,5 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
     );
   }
 
-  // TRANSFERÊNCIA
-  void _iniciarTransferencia(BuildContext context, String animalId) async {
-    final result = await Navigator.push(
-      context,
 
-      MaterialPageRoute(builder: (context) => const QRScannerScreen()),
-    );
-
-    if (result != null && result is Map<String, dynamic>) {
-      final success = await _animalService.transferAnimal(
-        animalId: animalId,
-
-        destinationPropertyId: result['propertyId'],
-
-        destinationProducerId: result['producerId'],
-      );
-
-      if (success['success']) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Transferência concluída com sucesso!'),
-            ),
-          );
-
-          Navigator.pop(context);
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(success['message'] ?? 'Erro na transferência'),
-            ),
-          );
-        }
-      }
-    }
-  }
 }

@@ -187,50 +187,30 @@ class AnimalService {
     String animalId,
     Map<String, dynamic> eventData,
   ) async {
-    const endpoints = [
-      '/animals/{id}/management-events',
-      '/animals/{id}/management-event',
-      '/animals/{id}/events',
-    ];
+    try {
+      final response = await ApiClient.post(
+        '/animals/$animalId/management-events',
+        eventData,
+      );
 
-    for (final rawEndpoint in endpoints) {
-      final endpoint = rawEndpoint.replaceFirst('{id}', animalId);
-
-      try {
-        final response = await ApiClient.post(endpoint, eventData);
-
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          return {
-            'success': true,
-            'data': jsonDecode(response.body),
-          };
-        }
-
-        if (response.statusCode == 404) {
-          continue;
-        }
-
-        final error = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return {
-          'success': false,
-          'message': error['message'] ?? 'Erro ao registrar o evento de manejo.',
+          'success': true,
+          'data': jsonDecode(response.body),
         };
-      } catch (e) {
-        if (rawEndpoint == endpoints.last) {
-          return {
-            'success': false,
-            'message':
-                'Não foi possível registrar o evento de manejo. Verifique se o endpoint existe no backend.',
-          };
-        }
       }
-    }
 
-    return {
-      'success': false,
-      'message':
-          'Endpoint de evento de manejo não disponível no backend.',
-    };
+      final error = jsonDecode(response.body);
+      return {
+        'success': false,
+        'message': error['message'] ?? 'Erro ao registrar o evento de manejo.',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Erro de conexão ao registrar o evento de manejo: $e',
+      };
+    }
   }
 
   /// Procura o histórico completo
