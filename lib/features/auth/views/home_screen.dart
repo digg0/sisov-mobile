@@ -23,8 +23,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _userProfile;
   bool _isLoadingProfile = true;
   int _cachedSlaughteredCount = 0;
-
-  
+  // Contador de sessão: incrementado imediatamente no sucesso; sincronizado
+  // com a API a cada _loadUserData (prevalece o maior dos dois).
+  int _cachedTransferCount = 0;
 
   @override
   void initState() {
@@ -34,16 +35,57 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadUserData() async {
     final profile = await _authService.getProfile();
-    if (mounted) {
-      // Carrega o count de abatidos separadamente
-      final slaughteredCount = await _getSlaughteredCount();
-      
-      setState(() {
-        _userProfile = profile;
-        _isLoadingProfile = false;
-        _cachedSlaughteredCount = slaughteredCount;
-      });
+    if (!mounted) return;
+
+    // Atualiza o perfil antes de calcular os contadores derivados,
+    // para que _countProfileValue leia os dados frescos.
+    _userProfile = profile;
+
+    final slaughteredCount = await _getSlaughteredCount();
+    if (!mounted) return;
+
+    final apiTransferCount = _getTransferCount();
+
+    setState(() {
+      _isLoadingProfile = false;
+      _cachedSlaughteredCount = slaughteredCount;
+      // Preserva o maior valor: contagem local de sessão vs. API
+      if (apiTransferCount > _cachedTransferCount) {
+        _cachedTransferCount = apiTransferCount;
+      }
+    });
+  }
+
+  /// Lê o total de transferências do perfil da API.
+  /// Tenta uma lista ampla de nomes de campo usados por diferentes versões
+  /// do backend; se encontrar um array, conta os elementos.
+  int _getTransferCount() {
+    final fromField = _countProfileValue([
+      'transfersCount',
+      'transfers_count',
+      'transferCount',
+      'transfer_count',
+      'sentTransfersCount',
+      'sent_transfers_count',
+      'outgoingTransfersCount',
+      'transferencias',
+      'transferenciasCount',
+    ]);
+    if (fromField > 0) return fromField;
+
+    if (_userProfile != null) {
+      for (final key in [
+        'transfers',
+        'sentTransfers',
+        'recentTransfers',
+        'transferHistory',
+        'transferencias',
+      ]) {
+        final val = _userProfile![key];
+        if (val is List) return val.length;
+      }
     }
+    return 0;
   }
 
   Future<void> _navTo(Widget screen) async {
@@ -261,12 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         _buildStatusItem(
                           "Transferências recentes",
-                          _countProfileValue([
-                            'transfersCount',
-                            'transfers_count',
-                            'transferCount',
-                            'transfer_count',
-                          ]).toString().padLeft(2, '0'),
+                          _cachedTransferCount.toString().padLeft(2, '0'),
                           Icons.swap_horiz,
                           Colors.blue,
                         ),
@@ -354,8 +391,20 @@ class _HomeScreenState extends State<HomeScreen> {
           _loadUserData();
         }),
         _actionButton("Ler QR Code", Icons.qr_code_scanner, AppColors.primary, _scanAnimalQRCode),
-        _actionButton("Transferência", Icons.sync_alt, AppColors.primary, () {
-          _navTo(const AnimalSearchScreen(isTransferMode: true));
+        _actionButton("Transferência", Icons.sync_alt, AppColors.primary, () async {
+          // Captura o sinal de sucesso (true) para incrementar o contador
+          // imediatamente, sem esperar o próximo getProfile().
+          final transferred = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const AnimalSearchScreen(isTransferMode: true),
+            ),
+          );
+          if (!mounted) return;
+          if (transferred == true) {
+            setState(() => _cachedTransferCount++);
+          }
+          _loadUserData();
         }),
         _actionButton("Rebanho", Icons.agriculture, AppColors.primary, () {
           _navTo(const AnimalSearchScreen(isTransferMode: false));

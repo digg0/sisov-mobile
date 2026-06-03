@@ -157,7 +157,8 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+        // Retorna true para o home screen contabilizar a transferência
+        Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

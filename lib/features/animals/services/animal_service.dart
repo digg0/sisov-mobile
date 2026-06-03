@@ -132,11 +132,17 @@ class AnimalService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {'success': true, 'data': jsonDecode(response.body)};
       } else {
-        final error = jsonDecode(response.body);
-        return {
-          'success': false,
-          'message': error['message'] ?? 'Erro na transferência.',
-        };
+        String errorMessage;
+        try {
+          final error = jsonDecode(response.body);
+          final apiMsg = error['message']?.toString() ?? error['error']?.toString();
+          errorMessage = apiMsg != null
+              ? '[${response.statusCode}] $apiMsg'
+              : '[${response.statusCode}] Transferência recusada pela API';
+        } catch (_) {
+          errorMessage = '[${response.statusCode}] ${response.body}';
+        }
+        return {'success': false, 'message': errorMessage};
       }
     } catch (e) {
       print("ERRO CRÍTICO NO SERVICE: $e");

@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../models/property_model.dart';
 import '../services/property_service.dart';
 import '../../animals/views/receive_animal_screen.dart';
+import '../../auth/services/auth_service.dart';
 
 class PropertiesListScreen extends StatefulWidget {
   const PropertiesListScreen({
@@ -20,23 +21,22 @@ class _PropertiesListScreenState
     extends State<
       PropertiesListScreen
     > {
-  final _propertyService =
-      PropertyService();
+  final _propertyService = PropertyService();
+  final _authService = AuthService();
 
-
-  // Simulação do perfil carregado
-  // Idealmente isso vem do AuthService
   Map<String, dynamic>? _userProfile;
 
   @override
   void initState() {
     super.initState();
+    _loadUserProfile();
+  }
 
-    // Exemplo mock
-    // Troque pelo seu carregamento real
-    _userProfile = {
-      'id': 'USER_ID_LOGADO',
-    };
+  Future<void> _loadUserProfile() async {
+    final profile = await _authService.getProfile();
+    if (mounted) {
+      setState(() => _userProfile = profile);
+    }
   }
 
   @override
@@ -217,26 +217,20 @@ class _PropertiesListScreenState
                                       AppColors.primary,
                                 ),
 
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-
-                                MaterialPageRoute(
-                                  builder:
-                                      (_) =>
-                                          ReceiveAnimalScreen(
-                                            producerId:
-                                                _userProfile!['id'],
-
-                                            propertyId:
-                                                item.id,
-
-                                            farmName:
-                                                item.farmName,
-                                          ),
-                                ),
-                              );
-                            },
+                            onPressed: _userProfile == null
+                                ? null
+                                : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ReceiveAnimalScreen(
+                                          producerId: (_userProfile!['id'] ?? _userProfile!['_id'] ?? '').toString(),
+                                          propertyId: item.id,
+                                          farmName: item.farmName,
+                                        ),
+                                      ),
+                                    );
+                                  },
                           ),
 
                       onTap: () {

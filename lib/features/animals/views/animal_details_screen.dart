@@ -53,13 +53,14 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
           "${date.year}";
     } catch (_) {}
 
-    final String animalId = (animal['sisovId'] ?? animal['id'] ?? '')
-        .toString();
+    final String sisovId = (animal['sisovId'] ?? '').toString();
+    final String animalId = sisovId.isNotEmpty
+        ? sisovId
+        : (animal['id'] ?? '').toString();
 
-    // Lógica inteligente do QR Code
-    // Se abatido -> link público
-    // Se ativo -> link interno de manejo
-    final String publicUrl = "https://sisov.com.br/rastreabilidade/$animalId";
+    // QR de rastreabilidade usa exclusivamente o sisovId oficial do animal.
+    // QR de manejo usa animalId (sisovId com fallback para id interno).
+    final String publicUrl = "https://sisov.com.br/rastreabilidade/$sisovId";
 
     final String internalUrl = "sisov://manage/$animalId";
 
