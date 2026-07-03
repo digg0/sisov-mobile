@@ -11,6 +11,7 @@ import '../../../core/utils/image_exporter.dart';
 import '../services/animal_service.dart';
 import 'animal_history_screen.dart';
 import 'animal_management_event_screen.dart';
+import 'slaughter_registration_screen.dart';
 
 class AnimalDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> animal;
@@ -535,55 +536,37 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
 
   // CONFIRMAÇÃO DE ABATE
   void _confirmarAbate(BuildContext context, String id) {
-    showDialog(
-      context: context,
+    final animal = widget.animal;
+    final String tagId = animal['tagId']?.toString() ?? 'Animal';
+    final String birthDate = animal['birthDate'] ?? '';
+    
+    DateTime? parsedBirthDate;
+    try {
+      parsedBirthDate = DateTime.parse(birthDate);
+    } catch (_) {
+      parsedBirthDate = DateTime.now().subtract(const Duration(days: 180));
+    }
 
-      builder: (ctx) => AlertDialog(
-        title: const Text("Confirmar Abate?"),
-
-        content: const Text(
-          "Isso finalizará o ciclo do animal e validará a Indicação Geográfica de Tauá.",
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => SlaughterRegistrationScreen(
+          animalId: id,
+          animalTag: tagId,
+          birthDate: parsedBirthDate!,
         ),
-
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-
-            child: const Text("Cancelar"),
-          ),
-
-          ElevatedButton(
-            child: const Text("Confirmar"),
-
-            onPressed: () async {
-              Navigator.pop(ctx);
-
-              final res = await _animalService.slaughterAnimal(id);
-
-              if (res['success']) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(res['data']['message'])),
-                  );
-
-                  Navigator.pop(context);
-                }
-              } else {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        res['message'] ?? 'Erro ao registrar abate',
-                      ),
-                    ),
-                  );
-                }
-              }
-            },
-          ),
-        ],
       ),
-    );
+    ).then((result) {
+      if (result == true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Abate registrado com sucesso!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    });
   }
 
   Future<void> _openFullHistory(String animalId) async {

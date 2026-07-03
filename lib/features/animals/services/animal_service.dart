@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../../core/api/api_client.dart';
 import '../models/management_event_model.dart';
+import '../models/slaughter_registration_model.dart';
 
 class AnimalService {
 
@@ -185,6 +186,37 @@ class AnimalService {
         'success': false,
         'message':
             'Erro de conexão ao registar abate.',
+      };
+    }
+  }
+
+  /// Registra o abate do animal com requisitos técnicos da IG
+  /// Valida conformidade com Caderno de Especificações Técnicas
+  Future<Map<String, dynamic>> registerSlaughter(
+    SlaughterRegistration registration,
+  ) async {
+    try {
+      final response = await ApiClient.post(
+        '/animals/${registration.animalId}/slaughter-with-requirements',
+        registration.toJson(),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'data': jsonDecode(response.body),
+        };
+      }
+
+      final error = jsonDecode(response.body);
+      return {
+        'success': false,
+        'message': error['message'] ?? 'Erro ao registrar abate com requisitos.',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Erro de conexão ao registrar abate: $e',
       };
     }
   }
