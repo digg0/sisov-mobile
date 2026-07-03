@@ -251,7 +251,11 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
 
     if (_filteredAnimals.isEmpty) {
       return const Center(
-        child: Text('Nenhum animal encontrado.', style: TextStyle(color: Colors.black45, fontSize: 16)),
+        child: Text(
+          'Nenhum animal encontrado. Tente outro termo ou volte ao início.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.black45, fontSize: 16, height: 1.4),
+        ),
       );
     }
 

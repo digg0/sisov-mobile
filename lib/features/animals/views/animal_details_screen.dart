@@ -314,30 +314,19 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
             if (isActive)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
-
                 child: SizedBox(
                   width: double.infinity,
-
                   child: ElevatedButton.icon(
                     onPressed: () => _confirmarAbate(context, animalId),
-
-                    icon: const Icon(Icons.gavel, color: Colors.white),
-
-                    label: const FittedBox(
-                      child: Text(
-                        "REGISTRAR ABATE / SELO IG",
-
-                        style: TextStyle(color: Colors.white),
-                      ),
+                    icon: const Icon(Icons.shield_moon, color: Colors.white),
+                    label: const Text(
+                      'Registrar abate com selo IG',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
-
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(255, 36, 14, 233),
-
                       foregroundColor: Colors.white,
-
                       padding: const EdgeInsets.symmetric(vertical: 15),
-
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

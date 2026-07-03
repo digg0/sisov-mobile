@@ -95,7 +95,7 @@ class _ReceiveAnimalScreenState extends State<ReceiveAnimalScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Receber Ovino',
+          'Receber animal',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: AppColors.primary,
@@ -228,7 +228,7 @@ class _ReceiveAnimalScreenState extends State<ReceiveAnimalScreen> {
     return Column(
       children: [
         const Text(
-          'Mostre este QR Code\npara o vendedor',
+          'Mostre este código\npara o vendedor',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,

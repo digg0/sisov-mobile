@@ -60,230 +60,203 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.primary,
-      // resizeToAvoidBottomInset padrão (true): scaffold encolhe com o teclado
-      body: GestureDetector(
-        // Toque fora dos campos fecha o teclado
-        onTap: () => FocusScope.of(context).unfocus(),
-        behavior: HitTestBehavior.translucent,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              // reverse: true mantém o formulário visível quando o teclado abre —
-              // a âncora de scroll fica na parte inferior (formulário), e o cabeçalho
-              // verde sobe silenciosamente para fora da tela.
-              reverse: true,
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ── CABEÇALHO VERDE ─────────────────────────────────────────
-                  Container(
-                    padding: const EdgeInsets.only(top: 80, bottom: 48),
-                    width: double.infinity,
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                          ),
-                          child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 40),
+      body: SafeArea(
+        bottom: false,
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.translucent,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.only(bottom: bottomInset + 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(24, 80, 24, 48),
+                  width: double.infinity,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                         ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Bem-vindo ao SISOV',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Acesse sua conta para continuar',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ── FORMULÁRIO BRANCO ────────────────────────────────────────
-                  // minHeight garante que o cartão branco preenche o espaço restante
-                  // da tela mesmo em dispositivos maiores.
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight * 0.55,
-                    ),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(40),
-                          topRight: Radius.circular(40),
+                        child: const Icon(Icons.login_rounded, color: Colors.white, size: 48),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Acesse o SISOV',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // ── E-MAIL ────────────────────────────────────────
-                            const Text(
-                              'E-mail',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'E-mail e senha cadastrados',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(40),
+                      topRight: Radius.circular(40),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'E-mail',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
                             ),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: _emailController,
-                              focusNode: _emailFocus,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              autofillHints: const [AutofillHints.email],
-                              // Passa foco para a senha ao pressionar "Próximo"
-                              onFieldSubmitted: (_) =>
-                                  FocusScope.of(context).requestFocus(_senhaFocus),
-                              style: const TextStyle(fontSize: 16),
-                              decoration: _inputStyle(
-                                'Digite seu e-mail',
-                                Icons.email_outlined,
-                              ),
-                              validator: AppValidators.email,
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _emailController,
+                            focusNode: _emailFocus,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.email],
+                            onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_senhaFocus),
+                            style: const TextStyle(fontSize: 16),
+                            decoration: _inputStyle(
+                              'Digite seu e-mail',
+                              Icons.email_outlined,
                             ),
-
-                            const SizedBox(height: 24),
-
-                            // ── SENHA ─────────────────────────────────────────
-                            const Text(
-                              'Senha',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
+                            validator: AppValidators.email,
+                          ),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Senha',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
                             ),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: _senhaController,
-                              focusNode: _senhaFocus,
-                              obscureText: _obscureText,
-                              textInputAction: TextInputAction.done,
-                              autofillHints: const [AutofillHints.password],
-                              // "Concluir" no teclado aciona o login diretamente
-                              onFieldSubmitted: (_) => _fazerLogin(),
-                              style: const TextStyle(fontSize: 16),
-                              decoration: _inputStyle(
-                                'Digite sua senha',
-                                Icons.lock_outline,
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureText
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    color: AppColors.textMuted,
-                                    size: 22,
-                                  ),
-                                  tooltip: _obscureText ? 'Mostrar senha' : 'Ocultar senha',
-                                  onPressed: () =>
-                                      setState(() => _obscureText = !_obscureText),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _senhaController,
+                            focusNode: _senhaFocus,
+                            obscureText: _obscureText,
+                            textInputAction: TextInputAction.done,
+                            autofillHints: const [AutofillHints.password],
+                            onFieldSubmitted: (_) => _fazerLogin(),
+                            style: const TextStyle(fontSize: 16),
+                            decoration: _inputStyle(
+                              'Digite sua senha',
+                              Icons.lock_outline,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                  color: AppColors.textMuted,
+                                  size: 22,
                                 ),
+                                tooltip: _obscureText ? 'Mostrar senha' : 'Ocultar senha',
+                                onPressed: () => setState(() => _obscureText = !_obscureText),
                               ),
-                              validator: AppValidators.passwordLogin,
                             ),
-
-                            const SizedBox(height: 36),
-
-                            // ── BOTÃO ENTRAR ──────────────────────────────────
-                            SizedBox(
-                              width: double.infinity,
-                              height: 60,
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _fazerLogin,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  disabledBackgroundColor:
-                                      AppColors.primary.withValues(alpha: 0.6),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  elevation: 0,
+                            validator: AppValidators.passwordLogin,
+                          ),
+                          const SizedBox(height: 36),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 60,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _fazerLogin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        height: 26,
-                                        width: 26,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2.5,
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Entrar',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
+                                elevation: 0,
+                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 26,
+                                      width: 26,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2.5,
                                       ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 24),
-
-                            // ── LINK CADASTRO ─────────────────────────────────
-                            Center(
-                              child: GestureDetector(
-                                onTap: () => Navigator.pushNamed(context, '/register'),
-                                child: RichText(
-                                  text: TextSpan(
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.black.withValues(alpha: 0.6),
+                                    )
+                                  : const Text(
+                                      'Entrar',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                    children: const [
-                                      TextSpan(text: 'Não tem conta?  '),
-                                      TextSpan(
-                                        text: 'Cadastre-se aqui',
-                                        style: TextStyle(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.w700,
-                                        ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Center(
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'Ainda não tem conta?',
+                                  style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+                                ),
+                                const SizedBox(height: 10),
+                                SizedBox(
+                                  width: 190,
+                                  height: 52,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => Navigator.pushNamed(context, '/register'),
+                                    icon: const Icon(Icons.person_add_alt_1, color: AppColors.primary),
+                                    label: const Text('Criar conta'),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: AppColors.primary, width: 2),
+                                      foregroundColor: AppColors.primary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-
-                            // Espaço extra para o botão não colar no fundo em
-                            // telas com barra de navegação por gestos
-                            SizedBox(
-                              height: MediaQuery.of(context).padding.bottom + 8,
-                            ),
-                          ],
-                        ),
+                          ),
+                          SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
-            );
-          },
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -297,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: AppColors.background,
-      contentPadding: const EdgeInsets.symmetric(vertical: 18),
+      contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 18),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.border),

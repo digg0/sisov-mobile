@@ -53,7 +53,7 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Nova Propriedade', style: TextStyle(color: Colors.white)),
+        title: const Text('Nova Fazenda', style: TextStyle(color: Colors.white)),
         backgroundColor: AppColors.primary,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -127,7 +127,7 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Cadastrar Fazenda', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      : const Text('Salvar Fazenda', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],

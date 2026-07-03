@@ -278,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: const SizedBox.shrink(),
                         ),
                         const Text(
-                          "Ações Rápidas",
+                          "O que fazer",
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                         ),
                         const SizedBox(height: 16),

@@ -134,29 +134,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 children: [
                   Container(
-                    width: 80,
-                    height: 80,
+                    width: 100,
+                    height: 100,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(28),
                       border: Border.all(color: Colors.white.withOpacity(0.2)),
                     ),
-                    child: const Icon(Icons.person_add, color: Colors.white, size: 40),
+                    child: const Icon(Icons.person_add_alt_1, color: Colors.white, size: 48),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   const Text(
-                    'Cadastre-se no SISOV',
+                    'Criar conta',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 26,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                       letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Text(
-                    'Preencha seus dados para começar',
-                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontWeight: FontWeight.w500),
+                    'Complete os dados abaixo para usar o SISOV',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                    ),
                   ),
                 ],
               ),
@@ -312,25 +317,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 16),
 
                     // LINK PARA LOGIN
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Já tem conta? ',
-                          style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 14),
-                        ),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Text(
-                            'Fazer login',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            'Já tem conta?',
+                            style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 14),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: 200,
+                            height: 52,
+                            child: OutlinedButton.icon(
+                              onPressed: () => Navigator.pop(context),
+                              icon: const Icon(Icons.login, color: AppColors.primary),
+                              label: const Text('Fazer login'),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: AppColors.primary, width: 2),
+                                foregroundColor: AppColors.primary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -350,7 +362,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: AppColors.background,
-      contentPadding: const EdgeInsets.symmetric(vertical: 18),
+      contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 18),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.border),

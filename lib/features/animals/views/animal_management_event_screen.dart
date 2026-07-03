@@ -142,7 +142,7 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Registrar Evento de Manejo'),
+        title: const Text('Registrar evento'),
         backgroundColor: AppColors.primary,
       ),
       backgroundColor: AppColors.background,
@@ -186,8 +186,8 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
               ),
               const SizedBox(height: 16),
               const Text(
-                'Registre eventos de manejo diretamente no SISOV: vacinas, pesagens, alimentação, cobertura e outros cuidados de campo.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                'Registre vacinas, pesagens, alimentação ou outros cuidados do animal.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.4),
               ),
             ],
           ),

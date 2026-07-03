@@ -115,14 +115,11 @@ class _PropertiesListScreenState
                       .isEmpty) {
                 return const Center(
                   child: Text(
-                    'Nenhuma fazenda cadastrada.\nClique no + para começar.',
-
-                    textAlign:
-                        TextAlign.center,
-
+                    'Nenhuma fazenda ainda.\nToque no botão + para começar.',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color:
-                          Colors.grey,
+                      color: Colors.grey,
+                      fontSize: 16,
                     ),
                   ),
                 );
@@ -202,7 +199,8 @@ class _PropertiesListScreenState
                       ),
 
                       subtitle: Text(
-                        '${item.city} - ${item.state}',
+                        '${item.city} • ${item.state}',
+                        style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                       ),
 
                       // BOTÃO QR CODE
