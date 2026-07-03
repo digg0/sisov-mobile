@@ -60,62 +60,58 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final textMuted70 = AppColors.textMuted.withValues(alpha: 0.7);
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.primary,
       body: SafeArea(
-        bottom: false,
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           behavior: HitTestBehavior.translucent,
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.only(bottom: bottomInset + 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  padding: const EdgeInsets.fromLTRB(24, 80, 24, 48),
-                  width: double.infinity,
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                        ),
-                        child: const Icon(Icons.login_rounded, color: Colors.white, size: 48),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 56, 24, 32),
+                width: double.infinity,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 92,
+                      height: 92,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                       ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'Acesse o SISOV',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
+                      child: const Icon(Icons.login_rounded, color: Colors.white, size: 44),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Acesse o SISOV',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
                       ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'E-mail e senha cadastrados',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 15,
-                        ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'E-mail e senha cadastrados',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 15,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Container(
+              ),
+              Expanded(
+                child: Container(
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Colors.white,
@@ -124,8 +120,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       topRight: Radius.circular(40),
                     ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
+                    physics: const ClampingScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -151,6 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: _inputStyle(
                               'Digite seu e-mail',
                               Icons.email_outlined,
+                              textMuted70,
                             ),
                             validator: AppValidators.email,
                           ),
@@ -175,6 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: _inputStyle(
                               'Digite sua senha',
                               Icons.lock_outline,
+                              textMuted70,
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -248,24 +248,24 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                           ),
-                          SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+                          SizedBox(height: MediaQuery.of(context).padding.bottom + 12),
                         ],
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  InputDecoration _inputStyle(String hint, IconData icon, {Widget? suffixIcon}) {
+  InputDecoration _inputStyle(String hint, IconData icon, Color hintColor, {Widget? suffixIcon}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.7), fontSize: 15),
+      hintStyle: TextStyle(color: hintColor, fontSize: 15),
       prefixIcon: Icon(icon, color: AppColors.textMuted, size: 22),
       suffixIcon: suffixIcon,
       filled: true,

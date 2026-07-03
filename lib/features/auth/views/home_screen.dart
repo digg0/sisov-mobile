@@ -96,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadUserData();
   }
 
-  void _scanAnimalQRCode() async {
+  void _scanManagementQRCode() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const QRScannerScreen()),
@@ -390,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> {
           await Navigator.pushNamed(context, '/select-property');
           _loadUserData();
         }),
-        _actionButton("Ler QR Code", Icons.qr_code_scanner, AppColors.primary, _scanAnimalQRCode),
+        _actionButton("Ler QR Code de Manejo", Icons.qr_code_scanner, AppColors.primary, _scanManagementQRCode),
         _actionButton("Transferência", Icons.sync_alt, AppColors.primary, () async {
           // Captura o sinal de sucesso (true) para incrementar o contador
           // imediatamente, sem esperar o próximo getProfile().
