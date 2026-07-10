@@ -179,7 +179,7 @@ class _SlaughterRegistrationScreenState
               _buildInfoCard(
                 label: 'Idade',
                 value:
-                    '$ageInMonths meses (${ageInDays} dias) ${isAgeValid ? '✓' : '✗'}',
+                    '$ageInMonths meses ($ageInDays dias) ${isAgeValid ? '✓' : '✗'}',
                 icon: Icons.calendar_today,
                 color: isAgeValid ? Colors.green : Colors.red,
               ),

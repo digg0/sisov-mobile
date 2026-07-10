@@ -248,7 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                           ),
-                          SizedBox(height: MediaQuery.of(context).padding.bottom + 12),
+                          const _BottomSafeGap(),
                         ],
                       ),
                     ),
@@ -292,5 +292,14 @@ class _LoginScreenState extends State<LoginScreen> {
         borderSide: const BorderSide(color: Colors.red, width: 2),
       ),
     );
+  }
+}
+
+class _BottomSafeGap extends StatelessWidget {
+  const _BottomSafeGap();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(height: MediaQuery.paddingOf(context).bottom + 12);
   }
 }
