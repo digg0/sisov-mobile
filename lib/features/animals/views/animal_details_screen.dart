@@ -189,6 +189,8 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14),
                                     ),
@@ -202,7 +204,16 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
                                             strokeWidth: 2,
                                           ),
                                         )
-                                      : const Text('Exportar PNG'),
+                                      : const FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            'Exportar PNG',
+                                            maxLines: 1,
+                                            softWrap: false,
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
@@ -217,11 +228,22 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primaryDark,
                                     foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14),
                                     ),
                                   ),
-                                  child: const Text('Exportar JPG'),
+                                  child: const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      'Exportar JPG',
+                                      maxLines: 1,
+                                      softWrap: false,
+                                      style:
+                                          TextStyle(fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
