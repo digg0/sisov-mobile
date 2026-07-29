@@ -30,19 +30,19 @@ class _SlaughterRegistrationScreenState
   // Controllers para campos de texto
   final _slaughterLocationController = TextEditingController();
   final _carcassWeightController = TextEditingController();
-  final _bulletinNumberController = TextEditingController();
-  final _gtaNumberController = TextEditingController();
-  final _htaNumberController = TextEditingController();
   final _slaughterhouseCodeController = TextEditingController();
   final _observationsController = TextEditingController();
   final _carcassRendimentoController = TextEditingController();
 
-  // Valores selecionados
+  // Valores selecionados (usam os mesmos códigos aceitos pelo backend)
   DateTime? _selectedSlaughterDate;
-  String _animalAgeProof = 'TRACEABILITY';
-  String _carcassColor = 'PINK_RED';
-  String _fatColor = 'WHITE';
-  String _meatTexture = 'FINE';
+  String _proofOfAge = 'RASTREABILIDADE';
+  String _carcassColor = 'VERMELHA_ROSADA';
+  String _fatColor = 'BRANCA';
+  String _meatTexture = 'FINA';
+  bool _hasBoletimEmbarque = false;
+  bool _hasGTA = false;
+  bool _hasHTA = false;
   bool _animalWelfareConfirmed = false;
   bool _sanitaryConditionConfirmed = false;
   bool _geographicOriginConfirmed = false;
@@ -58,9 +58,6 @@ class _SlaughterRegistrationScreenState
   void dispose() {
     _slaughterLocationController.dispose();
     _carcassWeightController.dispose();
-    _bulletinNumberController.dispose();
-    _gtaNumberController.dispose();
-    _htaNumberController.dispose();
     _slaughterhouseCodeController.dispose();
     _observationsController.dispose();
     _carcassRendimentoController.dispose();
@@ -84,6 +81,33 @@ class _SlaughterRegistrationScreenState
 
     if (_selectedSlaughterDate == null) {
       _showError('Selecione a data do abate');
+      return;
+    }
+
+    // Características da carcaça: o Caderno exige valores específicos.
+    if (_carcassColor != 'VERMELHA_ROSADA') {
+      _showError(
+        'A carcaça deve ser vermelha rosada para atender à IG (Art. 6º, §2º, I)',
+      );
+      return;
+    }
+    if (_fatColor != 'BRANCA') {
+      _showError(
+        'A gordura deve ser branca para atender à IG (Art. 6º, §2º, I)',
+      );
+      return;
+    }
+    if (_meatTexture != 'FINA') {
+      _showError(
+        'A textura da carne deve ser fina para atender à IG (Art. 6º, §2º, I)',
+      );
+      return;
+    }
+
+    if (!_hasBoletimEmbarque || !_hasGTA || !_hasHTA) {
+      _showError(
+        'Confirme a posse do Boletim de Embarque, GTA e HTA (documentação obrigatória)',
+      );
       return;
     }
 
@@ -116,21 +140,21 @@ class _SlaughterRegistrationScreenState
         slaughterDate: _selectedSlaughterDate!,
         slaughterLocation: _slaughterLocationController.text.trim(),
         carcassWeight: double.tryParse(_carcassWeightController.text) ?? 0,
-        animalAgeProof: _animalAgeProof,
+        proofOfAge: _proofOfAge,
         carcassColor: _carcassColor,
         fatColor: _fatColor,
         meatTexture: _meatTexture,
-        bulletinNumber: _bulletinNumberController.text.trim(),
-        gtaNumber: _gtaNumberController.text.trim(),
-        htaNumber: _htaNumberController.text.trim(),
-        animalWelfareConfirmed: _animalWelfareConfirmed,
-        sanitaryConditionConfirmed: _sanitaryConditionConfirmed,
+        hasBoletimEmbarque: _hasBoletimEmbarque,
+        hasGTA: _hasGTA,
+        hasHTA: _hasHTA,
+        confirmWelfare: _animalWelfareConfirmed,
+        confirmSanity: _sanitaryConditionConfirmed,
         geographicOriginConfirmed: _geographicOriginConfirmed,
         preSlaughterFastingConfirmed: _preSlaughterFastingConfirmed,
-        carcassRendimento:
+        carcassYield:
             double.tryParse(_carcassRendimentoController.text) ?? 0,
-        observations: _observationsController.text.trim(),
-        slaughterhouseCode: _slaughterhouseCodeController.text.trim(),
+        additionalNotes: _observationsController.text.trim(),
+        frigorificoCode: _slaughterhouseCodeController.text.trim(),
       );
 
       final result = await _animalService.registerSlaughter(registration);
@@ -198,7 +222,7 @@ class _SlaughterRegistrationScreenState
               ),
               const SizedBox(height: 12),
               _buildInfoCard(
-                label: 'Brinco',
+                label: 'Coleira',
                 value: widget.animalTag,
                 icon: Icons.tag,
               ),
@@ -242,12 +266,12 @@ class _SlaughterRegistrationScreenState
               ),
               _buildDropdown(
                 label: 'Selecione o método de comprovação',
-                value: _animalAgeProof,
+                value: _proofOfAge,
                 items: const [
-                  {'value': 'TRACEABILITY', 'label': 'Rastreabilidade'},
-                  {'value': 'TEETH', 'label': 'Análise de Dentes'},
+                  {'value': 'RASTREABILIDADE', 'label': 'Rastreabilidade'},
+                  {'value': 'DENTES', 'label': 'Análise de Dentes'},
                 ],
-                onChanged: (val) => setState(() => _animalAgeProof = val),
+                onChanged: (val) => setState(() => _proofOfAge = val),
               ),
               const SizedBox(height: 20),
 
@@ -261,8 +285,8 @@ class _SlaughterRegistrationScreenState
                 label: 'Selecione a cor da carcaça',
                 value: _carcassColor,
                 items: const [
-                  {'value': 'PINK_RED', 'label': 'Vermelha Rosada'},
-                  {'value': 'OTHER', 'label': 'Outra'},
+                  {'value': 'VERMELHA_ROSADA', 'label': 'Vermelha Rosada'},
+                  {'value': 'OTHER', 'label': 'Outra (não conforme)'},
                 ],
                 onChanged: (val) => setState(() => _carcassColor = val),
               ),
@@ -278,8 +302,8 @@ class _SlaughterRegistrationScreenState
                 label: 'Selecione a cor da gordura',
                 value: _fatColor,
                 items: const [
-                  {'value': 'WHITE', 'label': 'Branca'},
-                  {'value': 'OTHER', 'label': 'Outra'},
+                  {'value': 'BRANCA', 'label': 'Branca'},
+                  {'value': 'OTHER', 'label': 'Outra (não conforme)'},
                 ],
                 onChanged: (val) => setState(() => _fatColor = val),
               ),
@@ -295,8 +319,8 @@ class _SlaughterRegistrationScreenState
                 label: 'Selecione a textura da carne',
                 value: _meatTexture,
                 items: const [
-                  {'value': 'FINE', 'label': 'Fina'},
-                  {'value': 'OTHER', 'label': 'Outra'},
+                  {'value': 'FINA', 'label': 'Fina'},
+                  {'value': 'OTHER', 'label': 'Outra (não conforme)'},
                 ],
                 onChanged: (val) => setState(() => _meatTexture = val),
               ),
@@ -365,68 +389,38 @@ class _SlaughterRegistrationScreenState
               _buildSectionHeader('3. Documentação Obrigatória'),
               const SizedBox(height: 6),
               const Text(
-                'Informe os números dos documentos que acompanham o transporte e o abate do animal.',
+                'Confirme que o transporte e o abate do animal possuem a documentação exigida.',
                 style: TextStyle(fontSize: 13, color: AppColors.textMuted),
               ),
               const SizedBox(height: 16),
 
-              _buildQuestionLabel(
-                'Qual é o número do Boletim de Embarque?',
-                reference:
-                    'Art. 7º — O preenchimento do Boletim de Embarque é obrigatório no carregamento dos animais.',
+              _buildCheckboxTile(
+                title: 'O transporte do animal possui Boletim de Embarque?',
+                subtitle:
+                    'Art. 7º — Preenchimento obrigatório no carregamento dos animais.',
+                value: _hasBoletimEmbarque,
+                onChanged: (val) =>
+                    setState(() => _hasBoletimEmbarque = val ?? false),
               ),
-              TextFormField(
-                controller: _bulletinNumberController,
-                decoration: _inputDecoration(
-                  'Nº do Boletim de Embarque',
-                  Icons.receipt,
-                ),
-                validator: (val) {
-                  if (val == null || val.isEmpty) {
-                    return 'Boletim de Embarque é obrigatório';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-              _buildQuestionLabel(
-                'Qual é o número da GTA (Guia de Trânsito Animal)?',
-                reference:
-                    'Art. 7º — O transporte deve ser acompanhado da Guia de Trânsito Animal (GTA).',
+              _buildCheckboxTile(
+                title:
+                    'O transporte possui GTA (Guia de Trânsito Animal)?',
+                subtitle:
+                    'Art. 7º — O transporte deve ser acompanhado da GTA.',
+                value: _hasGTA,
+                onChanged: (val) => setState(() => _hasGTA = val ?? false),
               ),
-              TextFormField(
-                controller: _gtaNumberController,
-                decoration: _inputDecoration(
-                  'Nº da GTA',
-                  Icons.assignment,
-                ),
-                validator: (val) {
-                  if (val == null || val.isEmpty) {
-                    return 'GTA é obrigatória';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-              _buildQuestionLabel(
-                'Qual é o número do registro de HTA (Higiene e Tecnologia de Abate)?',
-                reference:
-                    'Art. 10 — O abate deve ocorrer em abatedouro inspecionado, com registro de higiene e tecnologia de abate.',
-              ),
-              TextFormField(
-                controller: _htaNumberController,
-                decoration: _inputDecoration(
-                  'Nº da HTA',
-                  Icons.verified,
-                ),
-                validator: (val) {
-                  if (val == null || val.isEmpty) {
-                    return 'HTA é obrigatória';
-                  }
-                  return null;
-                },
+              _buildCheckboxTile(
+                title:
+                    'O abate possui registro de HTA (Higiene e Tecnologia de Abate)?',
+                subtitle:
+                    'Art. 10 — O abate deve ocorrer em abatedouro inspecionado.',
+                value: _hasHTA,
+                onChanged: (val) => setState(() => _hasHTA = val ?? false),
               ),
               const SizedBox(height: 24),
 

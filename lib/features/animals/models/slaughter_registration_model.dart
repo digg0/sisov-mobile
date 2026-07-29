@@ -1,88 +1,87 @@
 class SlaughterRegistration {
-  final String animalId;
+  final String animalId; // Usado apenas na URL, não enviado no corpo
   final DateTime slaughterDate;
   final String slaughterLocation;
   final double carcassWeight;
-  final String animalAgeProof; // 'TRACEABILITY' ou 'TEETH'
-  final String carcassColor; // 'PINK_RED' para vermelha rosada
-  final String fatColor; // 'WHITE' para branca
-  final String meatTexture; // 'FINE' para fina
-  final String bulletinNumber; // Boletim de Embarque
-  final String gtaNumber; // Guia de Trânsito Animal
-  final String htaNumber; // HTA (Higiene e Tecnologia de Abate)
-  final bool animalWelfareConfirmed;
-  final bool sanitaryConditionConfirmed;
+  final String proofOfAge; // 'RASTREABILIDADE' ou 'DENTES'
+  final String carcassColor; // 'VERMELHA_ROSADA'
+  final String fatColor; // 'BRANCA'
+  final String meatTexture; // 'FINA'
+  final bool hasBoletimEmbarque; // Possui Boletim de Embarque
+  final bool hasGTA; // Possui Guia de Trânsito Animal
+  final bool hasHTA; // Possui Higiene e Tecnologia de Abate
+  final bool confirmWelfare;
+  final bool confirmSanity;
   final bool
       geographicOriginConfirmed; // Criado em Tauá ou min. 3 meses na região (Art. 6º, §1º)
   final bool
       preSlaughterFastingConfirmed; // Dieta hídrica 12h + sólida 16h (Art. 8º)
-  final double carcassRendimento; // Rendimento da carcaça (%)
-  final String observations;
-  final String slaughterhouseCode; // Código do frigorífico
+  final double carcassYield; // Rendimento da carcaça (%)
+  final String additionalNotes;
+  final String frigorificoCode; // Código do frigorífico (SIF/SIE/SIM)
 
   SlaughterRegistration({
     required this.animalId,
     required this.slaughterDate,
     required this.slaughterLocation,
     required this.carcassWeight,
-    required this.animalAgeProof,
+    required this.proofOfAge,
     required this.carcassColor,
     required this.fatColor,
     required this.meatTexture,
-    required this.bulletinNumber,
-    required this.gtaNumber,
-    required this.htaNumber,
-    required this.animalWelfareConfirmed,
-    required this.sanitaryConditionConfirmed,
+    required this.hasBoletimEmbarque,
+    required this.hasGTA,
+    required this.hasHTA,
+    required this.confirmWelfare,
+    required this.confirmSanity,
     required this.geographicOriginConfirmed,
     required this.preSlaughterFastingConfirmed,
-    required this.carcassRendimento,
-    required this.observations,
-    required this.slaughterhouseCode,
+    required this.carcassYield,
+    required this.additionalNotes,
+    required this.frigorificoCode,
   });
 
   Map<String, dynamic> toJson() => {
-    'animalId': animalId,
-    'slaughterDate': slaughterDate.toIso8601String(),
-    'slaughterLocation': slaughterLocation,
-    'carcassWeight': carcassWeight,
-    'animalAgeProof': animalAgeProof,
+    'proofOfAge': proofOfAge,
     'carcassColor': carcassColor,
     'fatColor': fatColor,
     'meatTexture': meatTexture,
-    'bulletinNumber': bulletinNumber,
-    'gtaNumber': gtaNumber,
-    'htaNumber': htaNumber,
-    'animalWelfareConfirmed': animalWelfareConfirmed,
-    'sanitaryConditionConfirmed': sanitaryConditionConfirmed,
+    'carcassWeight': carcassWeight,
+    'carcassYield': carcassYield,
+    'hasBoletimEmbarque': hasBoletimEmbarque,
+    'hasGTA': hasGTA,
+    'hasHTA': hasHTA,
+    'slaughterDate': slaughterDate.toIso8601String(),
+    'slaughterLocation': slaughterLocation,
+    'frigorificoCode': frigorificoCode,
+    'confirmWelfare': confirmWelfare,
+    'confirmSanity': confirmSanity,
     'geographicOriginConfirmed': geographicOriginConfirmed,
     'preSlaughterFastingConfirmed': preSlaughterFastingConfirmed,
-    'carcassRendimento': carcassRendimento,
-    'observations': observations,
-    'slaughterhouseCode': slaughterhouseCode,
+    if (additionalNotes.isNotEmpty) 'additionalNotes': additionalNotes,
   };
 
   factory SlaughterRegistration.fromJson(Map<String, dynamic> json) =>
       SlaughterRegistration(
-        animalId: json['animalId'] as String,
+        animalId: json['animalId'] as String? ?? '',
         slaughterDate: DateTime.parse(json['slaughterDate'] as String),
         slaughterLocation: json['slaughterLocation'] as String,
         carcassWeight: (json['carcassWeight'] as num).toDouble(),
-        animalAgeProof: json['animalAgeProof'] as String,
+        proofOfAge: json['proofOfAge'] as String,
         carcassColor: json['carcassColor'] as String,
         fatColor: json['fatColor'] as String,
         meatTexture: json['meatTexture'] as String,
-        bulletinNumber: json['bulletinNumber'] as String,
-        gtaNumber: json['gtaNumber'] as String,
-        htaNumber: json['htaNumber'] as String,
-        animalWelfareConfirmed: json['animalWelfareConfirmed'] as bool,
-        sanitaryConditionConfirmed: json['sanitaryConditionConfirmed'] as bool,
+        hasBoletimEmbarque: json['hasBoletimEmbarque'] as bool? ?? false,
+        hasGTA: json['hasGTA'] as bool? ?? false,
+        hasHTA: json['hasHTA'] as bool? ?? false,
+        confirmWelfare: json['confirmWelfare'] as bool? ?? false,
+        confirmSanity: json['confirmSanity'] as bool? ?? false,
         geographicOriginConfirmed:
             json['geographicOriginConfirmed'] as bool? ?? false,
         preSlaughterFastingConfirmed:
             json['preSlaughterFastingConfirmed'] as bool? ?? false,
-        carcassRendimento: (json['carcassRendimento'] as num).toDouble(),
-        observations: json['observations'] as String,
-        slaughterhouseCode: json['slaughterhouseCode'] as String,
+        carcassYield: (json['carcassYield'] as num).toDouble(),
+        additionalNotes: json['additionalNotes'] as String? ?? '',
+        frigorificoCode: json['frigorificoCode'] as String,
       );
 }

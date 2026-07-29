@@ -212,7 +212,7 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
               controller: _searchController,
               onChanged: _filterAnimals, 
               decoration: InputDecoration(
-                hintText: 'Buscar por brinco ou raça...',
+                hintText: 'Buscar por coleira ou raça...',
                 hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.15),
@@ -280,7 +280,7 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
               child: Icon(isMale ? Icons.male : Icons.female, color: isMale ? Colors.blue : Colors.pink),
             ),
             title: Text(
-              'Brinco: ${animal['tagId'] ?? 'N/A'}', 
+              'Coleira: ${animal['tagId'] ?? 'N/A'}', 
               style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)
             ),
             subtitle: Text(animal['breed'] ?? 'Raça não informada'),

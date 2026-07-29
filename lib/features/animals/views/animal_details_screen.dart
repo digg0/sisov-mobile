@@ -392,7 +392,7 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
 
                   children: [
                     Text(
-                      'Brinco: ${animal['tagId'] ?? 'N/A'}',
+                      'Coleira: ${animal['tagId'] ?? 'N/A'}',
 
                       style: const TextStyle(
                         fontSize: 22,

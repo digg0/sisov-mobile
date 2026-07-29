@@ -111,11 +111,11 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
                   controller: _tagController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: _inputStyle('Número do Brinco', Icons.tag).copyWith(
+                  decoration: _inputStyle('Número da Coleira', Icons.tag).copyWith(
                     prefixText: 'Nº ',
                     prefixStyle: const TextStyle(color: Colors.black54, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  validator: (v) => v == null || v.isEmpty ? 'O número do brinco é obrigatório' : null,
+                  validator: (v) => v == null || v.isEmpty ? 'O número da coleira é obrigatório' : null,
                 ),
               ),
 
