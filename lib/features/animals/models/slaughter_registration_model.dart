@@ -12,6 +12,10 @@ class SlaughterRegistration {
   final String htaNumber; // HTA (Higiene e Tecnologia de Abate)
   final bool animalWelfareConfirmed;
   final bool sanitaryConditionConfirmed;
+  final bool
+      geographicOriginConfirmed; // Criado em Tauá ou min. 3 meses na região (Art. 6º, §1º)
+  final bool
+      preSlaughterFastingConfirmed; // Dieta hídrica 12h + sólida 16h (Art. 8º)
   final double carcassRendimento; // Rendimento da carcaça (%)
   final String observations;
   final String slaughterhouseCode; // Código do frigorífico
@@ -30,6 +34,8 @@ class SlaughterRegistration {
     required this.htaNumber,
     required this.animalWelfareConfirmed,
     required this.sanitaryConditionConfirmed,
+    required this.geographicOriginConfirmed,
+    required this.preSlaughterFastingConfirmed,
     required this.carcassRendimento,
     required this.observations,
     required this.slaughterhouseCode,
@@ -49,6 +55,8 @@ class SlaughterRegistration {
     'htaNumber': htaNumber,
     'animalWelfareConfirmed': animalWelfareConfirmed,
     'sanitaryConditionConfirmed': sanitaryConditionConfirmed,
+    'geographicOriginConfirmed': geographicOriginConfirmed,
+    'preSlaughterFastingConfirmed': preSlaughterFastingConfirmed,
     'carcassRendimento': carcassRendimento,
     'observations': observations,
     'slaughterhouseCode': slaughterhouseCode,
@@ -69,6 +77,10 @@ class SlaughterRegistration {
         htaNumber: json['htaNumber'] as String,
         animalWelfareConfirmed: json['animalWelfareConfirmed'] as bool,
         sanitaryConditionConfirmed: json['sanitaryConditionConfirmed'] as bool,
+        geographicOriginConfirmed:
+            json['geographicOriginConfirmed'] as bool? ?? false,
+        preSlaughterFastingConfirmed:
+            json['preSlaughterFastingConfirmed'] as bool? ?? false,
         carcassRendimento: (json['carcassRendimento'] as num).toDouble(),
         observations: json['observations'] as String,
         slaughterhouseCode: json['slaughterhouseCode'] as String,

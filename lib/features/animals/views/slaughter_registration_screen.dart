@@ -45,6 +45,8 @@ class _SlaughterRegistrationScreenState
   String _meatTexture = 'FINE';
   bool _animalWelfareConfirmed = false;
   bool _sanitaryConditionConfirmed = false;
+  bool _geographicOriginConfirmed = false;
+  bool _preSlaughterFastingConfirmed = false;
 
   @override
   void initState() {
@@ -92,6 +94,20 @@ class _SlaughterRegistrationScreenState
       return;
     }
 
+    if (!_geographicOriginConfirmed) {
+      _showError(
+        'Você deve confirmar a origem geográfica do animal (Tauá ou mín. 3 meses na região)',
+      );
+      return;
+    }
+
+    if (!_preSlaughterFastingConfirmed) {
+      _showError(
+        'Você deve confirmar o jejum pré-abate (dieta hídrica 12h + sólida 16h)',
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
@@ -109,6 +125,8 @@ class _SlaughterRegistrationScreenState
         htaNumber: _htaNumberController.text.trim(),
         animalWelfareConfirmed: _animalWelfareConfirmed,
         sanitaryConditionConfirmed: _sanitaryConditionConfirmed,
+        geographicOriginConfirmed: _geographicOriginConfirmed,
+        preSlaughterFastingConfirmed: _preSlaughterFastingConfirmed,
         carcassRendimento:
             double.tryParse(_carcassRendimentoController.text) ?? 0,
         observations: _observationsController.text.trim(),
@@ -167,8 +185,17 @@ class _SlaughterRegistrationScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ─── APRESENTAÇÃO DO QUESTIONÁRIO ────────────────────────────
+              _buildIntroBanner(),
+              const SizedBox(height: 24),
+
               // ─── INFORMAÇÕES DO ANIMAL ─────────────────────────────────
-              _buildSectionHeader('Informações do Animal'),
+              _buildSectionHeader('1. Identificação do Animal'),
+              const SizedBox(height: 6),
+              const Text(
+                'Confira os dados do animal que está sendo enviado ao abate.',
+                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+              ),
               const SizedBox(height: 12),
               _buildInfoCard(
                 label: 'Brinco',
@@ -177,31 +204,44 @@ class _SlaughterRegistrationScreenState
               ),
               const SizedBox(height: 12),
               _buildInfoCard(
-                label: 'Idade',
+                label: 'Idade do animal',
                 value:
-                    '$ageInMonths meses ($ageInDays dias) ${isAgeValid ? '✓' : '✗'}',
+                    '$ageInMonths meses ($ageInDays dias) ${isAgeValid ? '✓ Apto' : '✗ Acima de 12 meses'}',
                 icon: Icons.calendar_today,
                 color: isAgeValid ? Colors.green : Colors.red,
               ),
-
-              const SizedBox(height: 24),
-
-              // ─── REQUISITOS TÉCNICOS ─────────────────────────────────
-              _buildSectionHeader('Requisitos Técnicos de Conformidade'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               const Text(
-                'Conforme Caderno de Especificações Técnicas - Indicação de Procedência "Manta de Carneiro de Tauá - CE"',
+                'O animal possui até 12 meses de idade? (Art. 6º, §2º, I — exige-se idade máxima de 12 meses)',
                 style: TextStyle(
                   fontSize: 12,
                   fontStyle: FontStyle.italic,
                   color: AppColors.textMuted,
                 ),
               ),
+
+              const SizedBox(height: 24),
+
+              // ─── REQUISITOS TÉCNICOS ─────────────────────────────────
+              _buildSectionHeader('2. Requisitos Técnicos de Conformidade'),
+              const SizedBox(height: 6),
+              const Text(
+                'Responda com base nas características observadas no animal e na carcaça, conforme o Caderno de Especificações Técnicas da IP "Manta de Carneiro de Tauá - CE".',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textMuted,
+                ),
+              ),
               const SizedBox(height: 16),
 
               // Comprovação de Idade
+              _buildQuestionLabel(
+                'Como foi comprovada a idade do animal?',
+                reference:
+                    'Art. 11, §1º — A comprovação da idade se dá pela rastreabilidade ou pela análise dos dentes do animal.',
+              ),
               _buildDropdown(
-                label: 'Comprovação de Idade',
+                label: 'Selecione o método de comprovação',
                 value: _animalAgeProof,
                 items: const [
                   {'value': 'TRACEABILITY', 'label': 'Rastreabilidade'},
@@ -209,52 +249,69 @@ class _SlaughterRegistrationScreenState
                 ],
                 onChanged: (val) => setState(() => _animalAgeProof = val),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Cor da Carcaça
+              _buildQuestionLabel(
+                'Qual é a cor da carcaça do animal?',
+                reference:
+                    'Art. 6º, §2º, I — A carcaça deve apresentar cor vermelha rosada.',
+              ),
               _buildDropdown(
-                label: 'Cor da Carcaça',
+                label: 'Selecione a cor da carcaça',
                 value: _carcassColor,
                 items: const [
                   {'value': 'PINK_RED', 'label': 'Vermelha Rosada'},
                   {'value': 'OTHER', 'label': 'Outra'},
                 ],
                 onChanged: (val) => setState(() => _carcassColor = val),
-                description: 'Deve ser vermelha rosada conforme especificação',
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Cor da Gordura
+              _buildQuestionLabel(
+                'Qual é a cor da gordura da carcaça?',
+                reference:
+                    'Art. 6º, §2º, I — A gordura deve ser branca.',
+              ),
               _buildDropdown(
-                label: 'Cor da Gordura',
+                label: 'Selecione a cor da gordura',
                 value: _fatColor,
                 items: const [
                   {'value': 'WHITE', 'label': 'Branca'},
                   {'value': 'OTHER', 'label': 'Outra'},
                 ],
                 onChanged: (val) => setState(() => _fatColor = val),
-                description: 'Deve ser branca conforme especificação',
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Textura da Carne
+              _buildQuestionLabel(
+                'Qual é a textura da carne?',
+                reference:
+                    'Art. 6º, §2º, I — A carne deve apresentar textura fina.',
+              ),
               _buildDropdown(
-                label: 'Textura da Carne',
+                label: 'Selecione a textura da carne',
                 value: _meatTexture,
                 items: const [
                   {'value': 'FINE', 'label': 'Fina'},
                   {'value': 'OTHER', 'label': 'Outra'},
                 ],
                 onChanged: (val) => setState(() => _meatTexture = val),
-                description: 'Deve ser fina conforme especificação',
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Peso da Carcaça
+              _buildQuestionLabel(
+                'Qual é o peso da carcaça (em kg)?',
+                reference:
+                    'Art. 11, §2º — O peso da carcaça deve ser verificado para atender aos critérios da IP.',
+              ),
               TextFormField(
                 controller: _carcassWeightController,
                 decoration: _inputDecoration(
-                  'Peso da Carcaça (kg)',
+                  'Peso da carcaça (kg)',
                   Icons.scale,
                   'Ex: 18.5',
                 ),
@@ -272,13 +329,18 @@ class _SlaughterRegistrationScreenState
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Rendimento da Carcaça
+              _buildQuestionLabel(
+                'Qual é o rendimento da carcaça (em %)?',
+                reference:
+                    'Art. 6º, §2º, III — O rendimento mínimo da carcaça deve ser de 42%.',
+              ),
               TextFormField(
                 controller: _carcassRendimentoController,
                 decoration: _inputDecoration(
-                  'Rendimento da Carcaça (%)',
+                  'Rendimento da carcaça (%)',
                   Icons.percent,
                   'Mínimo 42% - Ex: 45.5',
                 ),
@@ -300,13 +362,23 @@ class _SlaughterRegistrationScreenState
               const SizedBox(height: 24),
 
               // ─── DOCUMENTAÇÃO ────────────────────────────────────
-              _buildSectionHeader('Documentação Obrigatória'),
-              const SizedBox(height: 12),
+              _buildSectionHeader('3. Documentação Obrigatória'),
+              const SizedBox(height: 6),
+              const Text(
+                'Informe os números dos documentos que acompanham o transporte e o abate do animal.',
+                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 16),
 
+              _buildQuestionLabel(
+                'Qual é o número do Boletim de Embarque?',
+                reference:
+                    'Art. 7º — O preenchimento do Boletim de Embarque é obrigatório no carregamento dos animais.',
+              ),
               TextFormField(
                 controller: _bulletinNumberController,
                 decoration: _inputDecoration(
-                  'Boletim de Embarque',
+                  'Nº do Boletim de Embarque',
                   Icons.receipt,
                 ),
                 validator: (val) {
@@ -316,12 +388,17 @@ class _SlaughterRegistrationScreenState
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
+              _buildQuestionLabel(
+                'Qual é o número da GTA (Guia de Trânsito Animal)?',
+                reference:
+                    'Art. 7º — O transporte deve ser acompanhado da Guia de Trânsito Animal (GTA).',
+              ),
               TextFormField(
                 controller: _gtaNumberController,
                 decoration: _inputDecoration(
-                  'GTA - Guia de Trânsito Animal',
+                  'Nº da GTA',
                   Icons.assignment,
                 ),
                 validator: (val) {
@@ -331,12 +408,17 @@ class _SlaughterRegistrationScreenState
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
+              _buildQuestionLabel(
+                'Qual é o número do registro de HTA (Higiene e Tecnologia de Abate)?',
+                reference:
+                    'Art. 10 — O abate deve ocorrer em abatedouro inspecionado, com registro de higiene e tecnologia de abate.',
+              ),
               TextFormField(
                 controller: _htaNumberController,
                 decoration: _inputDecoration(
-                  'HTA - Higiene e Tecnologia de Abate',
+                  'Nº da HTA',
                   Icons.verified,
                 ),
                 validator: (val) {
@@ -349,10 +431,20 @@ class _SlaughterRegistrationScreenState
               const SizedBox(height: 24),
 
               // ─── ABATE ─────────────────────────────────
-              _buildSectionHeader('Dados do Abate'),
-              const SizedBox(height: 12),
+              _buildSectionHeader('4. Dados do Abate'),
+              const SizedBox(height: 6),
+              const Text(
+                'Informe onde e quando o animal foi abatido.',
+                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 16),
 
               // Data do Abate
+              _buildQuestionLabel(
+                'Em que data o animal foi abatido?',
+                reference:
+                    'Art. 10 — O abate deve ser realizado de forma humanitária em abatedouro inspecionado.',
+              ),
               InkWell(
                 onTap: _selectDate,
                 child: Container(
@@ -378,12 +470,17 @@ class _SlaughterRegistrationScreenState
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
+              _buildQuestionLabel(
+                'Em qual frigorífico/abatedouro o animal foi abatido?',
+                reference:
+                    'Art. 6º, §3º — O processamento deve ocorrer em estabelecimento com inspeção SIM, SIE ou SIF.',
+              ),
               TextFormField(
                 controller: _slaughterLocationController,
                 decoration: _inputDecoration(
-                  'Local do Abate (Frigorífico)',
+                  'Nome do frigorífico/abatedouro',
                   Icons.location_on,
                 ),
                 validator: (val) {
@@ -393,12 +490,17 @@ class _SlaughterRegistrationScreenState
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
+              _buildQuestionLabel(
+                'Qual é o código de inspeção do frigorífico (SIF, SIE ou SIM)?',
+                reference:
+                    'Art. 6º, §3º / Art. 10 — O abatedouro deve possuir sistema de inspeção municipal (SIM), estadual (SIE) ou federal (SIF).',
+              ),
               TextFormField(
                 controller: _slaughterhouseCodeController,
                 decoration: _inputDecoration(
-                  'Código do Frigorífico (SIF/SIE/SIM)',
+                  'Código SIF / SIE / SIM',
                   Icons.business,
                 ),
                 validator: (val) {
@@ -411,13 +513,19 @@ class _SlaughterRegistrationScreenState
               const SizedBox(height: 24),
 
               // ─── BEM-ESTAR E SANIDADE ────────────────────────────────
-              _buildSectionHeader('Certificações Obrigatórias'),
-              const SizedBox(height: 12),
+              _buildSectionHeader('5. Declarações de Conformidade'),
+              const SizedBox(height: 6),
+              const Text(
+                'Marque cada declaração apenas se ela for verdadeira para este abate. São obrigatórias para a validação da IP.',
+                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 16),
 
               _buildCheckboxTile(
-                title: 'Bem-Estar Animal Confirmado',
+                title:
+                    'O animal foi transportado e abatido conforme as normas de bem-estar animal?',
                 subtitle:
-                    'Confirmo que o animal foi transportado e abatido conforme normas de bem-estar',
+                    'Art. 7º e Art. 10 — Transporte sem estresse ou maus-tratos e abate humanitário.',
                 value: _animalWelfareConfirmed,
                 onChanged: (val) =>
                     setState(() => _animalWelfareConfirmed = val ?? false),
@@ -425,23 +533,51 @@ class _SlaughterRegistrationScreenState
               const SizedBox(height: 12),
 
               _buildCheckboxTile(
-                title: 'Sanidade Confirmada',
+                title:
+                    'O animal passou por inspeção sanitária e foi considerado apto ao abate?',
                 subtitle:
-                    'Confirmo que o animal passou em inspeção sanitária e está apto',
+                    'Art. 8º e Art. 24 — Sanidade animal verificada antes do abate.',
                 value: _sanitaryConditionConfirmed,
                 onChanged: (val) =>
                     setState(() => _sanitaryConditionConfirmed = val ?? false),
               ),
+              const SizedBox(height: 12),
+
+              _buildCheckboxTile(
+                title:
+                    'O animal foi criado no município de Tauá ou permaneceu na região por, no mínimo, 3 meses antes do abate?',
+                subtitle:
+                    'Art. 6º, §1º — Origem geográfica exigida para a Indicação de Procedência.',
+                value: _geographicOriginConfirmed,
+                onChanged: (val) =>
+                    setState(() => _geographicOriginConfirmed = val ?? false),
+              ),
+              const SizedBox(height: 12),
+
+              _buildCheckboxTile(
+                title:
+                    'O animal cumpriu o jejum pré-abate (dieta hídrica de no mínimo 12h e dieta sólida de no mínimo 16h)?',
+                subtitle:
+                    'Art. 8º — Jejum obrigatório na chegada ao abatedouro antes do abate.',
+                value: _preSlaughterFastingConfirmed,
+                onChanged: (val) => setState(
+                    () => _preSlaughterFastingConfirmed = val ?? false),
+              ),
               const SizedBox(height: 24),
 
               // ─── OBSERVAÇÕES ────────────────────────────────────
-              _buildSectionHeader('Observações Adicionais'),
+              _buildSectionHeader('6. Observações Adicionais'),
+              const SizedBox(height: 6),
+              const Text(
+                'Há alguma observação relevante sobre o animal, o transporte ou o abate? (opcional)',
+                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+              ),
               const SizedBox(height: 12),
 
               TextFormField(
                 controller: _observationsController,
                 decoration: _inputDecoration(
-                  'Observações',
+                  'Digite aqui suas observações (opcional)',
                   Icons.notes,
                 ),
                 maxLines: 4,
@@ -511,6 +647,76 @@ class _SlaughterRegistrationScreenState
       ),
     );
   }
+
+  Widget _buildIntroBanner() => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.assignment_turned_in, color: AppColors.primary),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Questionário de Conformidade da IP',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Responda às perguntas abaixo para validar o abate conforme o Caderno de Especificações Técnicas da Indicação de Procedência "Manta de Carneiro de Tauá - CE". Cada pergunta indica o artigo do regulamento correspondente.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textMuted,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildQuestionLabel(String question, {String? reference}) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              question,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+                height: 1.3,
+              ),
+            ),
+            if (reference != null) ...[
+              const SizedBox(height: 3),
+              Text(
+                reference,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontStyle: FontStyle.italic,
+                  color: AppColors.textMuted,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
 
   Widget _buildSectionHeader(String title) => Text(
     title,
