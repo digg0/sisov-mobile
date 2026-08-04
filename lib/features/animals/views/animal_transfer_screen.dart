@@ -87,8 +87,14 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
 
     if (res['success']) {
       if (mounted) {
+        final queued = res['queued'] == true;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✓ Transferência concluída!'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(queued
+                ? (res['message'] ?? 'Transferência salva no aparelho. Será enviada quando houver internet.')
+                : '✓ Transferência concluída!'),
+            backgroundColor: queued ? Colors.orange : Colors.green,
+          ),
         );
         Navigator.pop(context, true); // Volta para a ficha do animal avisando sucesso
       }

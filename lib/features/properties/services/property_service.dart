@@ -1,5 +1,6 @@
 import 'dart:convert';
 import '../../../core/api/api_client.dart';
+import '../../../core/sync/sync_service.dart';
 import '../models/property_model.dart';
 
 class PropertyService {
@@ -23,20 +24,14 @@ class PropertyService {
     required String city,
     required String state,
   }) async {
-    try {
-      final response = await ApiClient.post('/properties', {
+    return SyncService.instance.submitWrite(
+      endpoint: '/properties',
+      payload: {
         'farmName': farmName,
         'city': city,
         'state': state,
-      });
-
-      final data = jsonDecode(response.body);
-      return {
-        'success': response.statusCode == 201,
-        'message': data['message'] ?? 'Erro ao processar'
-      };
-    } catch (e) {
-      return {'success': false, 'message': 'Erro de conexão com o servidor'};
-    }
+      },
+      label: 'Cadastro de propriedade',
+    );
   }
 }

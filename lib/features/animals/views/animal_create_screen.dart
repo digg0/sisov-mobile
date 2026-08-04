@@ -75,8 +75,14 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
       setState(() => _isLoading = false);
 
       if (result['success']) {
+        final queued = result['queued'] == true;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ovino cadastrado com sucesso!'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(queued
+                ? (result['message'] ?? 'Salvo no aparelho. Será enviado quando houver internet.')
+                : 'Ovino cadastrado com sucesso!'),
+            backgroundColor: queued ? Colors.orange : Colors.green,
+          ),
         );
         Navigator.popUntil(context, ModalRoute.withName('/home'));
       } else {

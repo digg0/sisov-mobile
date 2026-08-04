@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
+import 'core/sync/sync_service.dart';
 import 'features/animals/views/animal_search_screen.dart';
 import 'features/animals/views/select_property_animal_screen.dart';
 import 'features/auth/views/login_screen.dart';
@@ -8,7 +9,10 @@ import 'features/auth/views/home_screen.dart';
 import 'features/properties/views/properties_create_screen.dart';
 import 'features/properties/views/properties_list_screen.dart'; // Importe a home aqui
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Inicializa a fila de sincronização offline-first e o monitor de conexão.
+  await SyncService.instance.init();
   runApp(const MyApp());
 }
 

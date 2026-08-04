@@ -35,8 +35,14 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
       if (!mounted) return;
 
       if (resultado['success']) {
+        final queued = resultado['queued'] == true;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Propriedade cadastrada!'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(queued
+                ? (resultado['message'] ?? 'Salvo no aparelho. Será enviado quando houver internet.')
+                : 'Propriedade cadastrada!'),
+            backgroundColor: queued ? Colors.orange : Colors.green,
+          ),
         );
         // Volta para a listagem avisando que houve sucesso para recarregar a lista
         Navigator.pop(context, true);
