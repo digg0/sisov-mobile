@@ -151,10 +151,13 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
       if (!mounted) return;
 
       if (success['success']) {
+        final queued = success['queued'] == true;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✓ Transferência concluída com sucesso!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text(queued
+                ? (success['message'] ?? 'Transferência salva no aparelho. Será enviada quando houver internet.')
+                : '✓ Transferência concluída com sucesso!'),
+            backgroundColor: queued ? Colors.orange : Colors.green,
           ),
         );
         // Retorna true para o home screen contabilizar a transferência

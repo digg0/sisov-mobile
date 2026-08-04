@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/sync/sync_service.dart';
 import '../models/management_event_model.dart';
 import '../models/slaughter_registration_model.dart';
 
@@ -9,34 +10,11 @@ class AnimalService {
   Future<Map<String, dynamic>> createAnimal(
     Map<String, dynamic> animalData,
   ) async {
-    try {
-      final response = await ApiClient.post(
-        '/animals',
-        animalData,
-      );
-
-      if (response.statusCode == 201) {
-        return {
-          'success': true,
-          'data': jsonDecode(response.body),
-        };
-      } else {
-        final error =
-            jsonDecode(response.body);
-
-        return {
-          'success': false,
-          'message':
-              error['message'] ??
-              'Erro ao cadastrar.',
-        };
-      }
-    } catch (e) {
-      return {
-        'success': false,
-        'message': e.toString(),
-      };
-    }
+    return SyncService.instance.submitWrite(
+      endpoint: '/animals',
+      payload: animalData,
+      label: 'Cadastro de animal',
+    );
   }
 
   Future<Map<String, dynamic>> getAnimal(
@@ -115,40 +93,14 @@ class AnimalService {
     required String destinationPropertyId,
     required String destinationProducerId,
   }) async {
-    try {
-      print("--- INICIANDO REQUEST DE TRANSFERÊNCIA ---");
-      print("URL: /animals/$animalId/transfer");
-
-      final response = await ApiClient.post(
-        '/animals/$animalId/transfer',
-        {
-          'destinationPropertyId': destinationPropertyId,
-          'destinationProducerId': destinationProducerId,
-        },
-      );
-
-      print("STATUS CODE DA API: ${response.statusCode}");
-      print("CORPO DA RESPOSTA: ${response.body}");
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return {'success': true, 'data': jsonDecode(response.body)};
-      } else {
-        String errorMessage;
-        try {
-          final error = jsonDecode(response.body);
-          final apiMsg = error['message']?.toString() ?? error['error']?.toString();
-          errorMessage = apiMsg != null
-              ? '[${response.statusCode}] $apiMsg'
-              : '[${response.statusCode}] Transferência recusada pela API';
-        } catch (_) {
-          errorMessage = '[${response.statusCode}] ${response.body}';
-        }
-        return {'success': false, 'message': errorMessage};
-      }
-    } catch (e) {
-      print("ERRO CRÍTICO NO SERVICE: $e");
-      return {'success': false, 'message': 'Erro de conexão: $e'};
-    }
+    return SyncService.instance.submitWrite(
+      endpoint: '/animals/$animalId/transfer',
+      payload: {
+        'destinationPropertyId': destinationPropertyId,
+        'destinationProducerId': destinationProducerId,
+      },
+      label: 'Transferência de animal',
+    );
   }
 
   /// Regista o abate do animal
@@ -195,60 +147,23 @@ class AnimalService {
   Future<Map<String, dynamic>> registerSlaughter(
     SlaughterRegistration registration,
   ) async {
-    try {
-      final response = await ApiClient.post(
-        '/animals/${registration.animalId}/slaughter-with-requirements',
-        registration.toJson(),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return {
-          'success': true,
-          'data': jsonDecode(response.body),
-        };
-      }
-
-      final error = jsonDecode(response.body);
-      return {
-        'success': false,
-        'message': error['message'] ?? 'Erro ao registrar abate com requisitos.',
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Erro de conexão ao registrar abate: $e',
-      };
-    }
+    return SyncService.instance.submitWrite(
+      endpoint:
+          '/animals/${registration.animalId}/slaughter-with-requirements',
+      payload: registration.toJson(),
+      label: 'Registro de abate',
+    );
   }
 
   Future<Map<String, dynamic>> registerManagementEvent(
     String animalId,
     Map<String, dynamic> eventData,
   ) async {
-    try {
-      final response = await ApiClient.post(
-        '/animals/$animalId/management-events',
-        eventData,
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return {
-          'success': true,
-          'data': jsonDecode(response.body),
-        };
-      }
-
-      final error = jsonDecode(response.body);
-      return {
-        'success': false,
-        'message': error['message'] ?? 'Erro ao registrar o evento de manejo.',
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Erro de conexão ao registrar o evento de manejo: $e',
-      };
-    }
+    return SyncService.instance.submitWrite(
+      endpoint: '/animals/$animalId/management-events',
+      payload: eventData,
+      label: 'Evento de manejo',
+    );
   }
 
   /// Procura o histórico completo

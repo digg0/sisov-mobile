@@ -13,7 +13,7 @@ class ApiClient {
 
   /// Constrói os cabeçalhos padrão para todas as requisições.
   /// Já verifica automaticamente se existe um JWT salvo e o injeta na chamada.
-  static Future<Map<String, String>> _getHeaders() async {
+  static Future<Map<String, String>> _getHeaders({String? requestId}) async {
     final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -24,12 +24,25 @@ class ApiClient {
       headers['Authorization'] = 'Bearer $token';
     }
 
+    // Identificador único da requisição (idempotência): permite ao backend
+    // ignorar reenvios duplicados vindos da fila de sincronização offline.
+    if (requestId != null) {
+      headers['X-Client-Request-Id'] = requestId;
+    }
+
     return headers;
   }
 
   /// Método genérico para requisições do tipo POST (ex: Login, Registrar Ovino)
-  static Future<http.Response> post(String endpoint, Map<String, dynamic> body) async {
-    final headers = await _getHeaders();
+  ///
+  /// [requestId] é opcional e, quando informado, é enviado no header
+  /// `X-Client-Request-Id` para garantir idempotência no reenvio offline.
+  static Future<http.Response> post(
+    String endpoint,
+    Map<String, dynamic> body, {
+    String? requestId,
+  }) async {
+    final headers = await _getHeaders(requestId: requestId);
     final url = Uri.parse('$baseUrl$endpoint');
 
     return await http.post(

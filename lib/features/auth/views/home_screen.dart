@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/sync/sync_service.dart';
 import '../services/auth_service.dart';
 import '../../animals/services/animal_service.dart';
 import '../../animals/views/animal_search_screen.dart';
@@ -267,6 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 children: [
                   _buildStatHeader(),
+                  _buildSyncBanner(),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24),
                     child: Column(
@@ -365,6 +367,49 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildTopStat("Ativos", ativos),
         ],
       ),
+    );
+  }
+
+  /// Banner que informa quando há registros salvos localmente aguardando
+  /// envio ao servidor. Fica oculto quando não há pendências.
+  Widget _buildSyncBanner() {
+    return ValueListenableBuilder<int>(
+      valueListenable: SyncService.instance.pendingCount,
+      builder: (context, count, _) {
+        if (count <= 0) return const SizedBox.shrink();
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.warning.withValues(alpha: 0.12),
+            border: Border.all(color: AppColors.warning),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.cloud_upload_outlined, color: AppColors.warning),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  count == 1
+                      ? '1 registro salvo no aparelho aguardando envio.'
+                      : '$count registros salvos no aparelho aguardando envio.',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => SyncService.instance.flush(),
+                child: const Text('Enviar agora'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

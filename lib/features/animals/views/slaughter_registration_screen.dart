@@ -162,10 +162,14 @@ class _SlaughterRegistrationScreenState
       if (!mounted) return;
 
       if (result['success']) {
+        final queued = result['queued'] == true;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✓ Abate registrado com sucesso e IG validada!'),
-            backgroundColor: AppColors.success,
+          SnackBar(
+            content: Text(queued
+                ? (result['message'] ??
+                    'Abate salvo no aparelho. Será enviado quando houver internet.')
+                : '✓ Abate registrado com sucesso e IG validada!'),
+            backgroundColor: queued ? AppColors.warning : AppColors.success,
           ),
         );
         Navigator.pop(context, true);

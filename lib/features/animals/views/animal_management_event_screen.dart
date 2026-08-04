@@ -111,10 +111,13 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
 
     if (result['success']) {
       if (!mounted) return;
+      final queued = result['queued'] == true;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Evento de manejo registrado com sucesso.'),
-          backgroundColor: AppColors.success,
+        SnackBar(
+          content: Text(queued
+              ? (result['message'] ?? 'Salvo no aparelho. Será enviado quando houver internet.')
+              : 'Evento de manejo registrado com sucesso.'),
+          backgroundColor: queued ? AppColors.warning : AppColors.success,
         ),
       );
       Navigator.pop(context, true);
