@@ -1,91 +1,132 @@
 import 'dart:convert';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/db/local_cache.dart';
 import '../../../core/sync/sync_service.dart';
 import '../models/management_event_model.dart';
 import '../models/slaughter_registration_model.dart';
 
 class AnimalService {
+  final _cache = LocalCache.instance;
 
   Future<Map<String, dynamic>> createAnimal(
     Map<String, dynamic> animalData,
   ) async {
-    return SyncService.instance.submitWrite(
+    final localId = SyncService.newLocalId();
+    final optimistic = {
+      ...animalData,
+      'sisovId': localId,
+      'status': 'ACTIVE',
+      'syncStatus': 'PENDING',
+    };
+    await _cache.upsertAnimal(optimistic);
+
+    final result = await SyncService.instance.submitWrite(
       endpoint: '/animals',
       payload: animalData,
       label: 'Cadastro de animal',
+      entityType: 'animal',
+      localEntityId: localId,
     );
+
+    // Servidor recusou (validação etc.): remove o rascunho local.
+    if (result['success'] != true) {
+      await _cache.deleteAnimal(localId);
+    }
+
+    return {
+      ...result,
+      'localEntityId': localId,
+    };
   }
 
-  Future<Map<String, dynamic>> getAnimal(
-    String identifier,
-  ) async {
+  Future<Map<String, dynamic>> getAnimal(String identifier) async {
     try {
-      final response = await ApiClient.get(
-        '/animals/$identifier',
-      );
+      final response = await ApiClient.get('/animals/$identifier');
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': jsonDecode(response.body),
-        };
-      } else {
-        return {
-          'success': false,
-          'message':
-              'Animal não encontrado no sistema.',
-        };
+        final decoded = jsonDecode(response.body);
+        final animal = decoded is Map && decoded['data'] is Map
+            ? Map<String, dynamic>.from(decoded['data'] as Map)
+            : decoded is Map
+                ? Map<String, dynamic>.from(decoded)
+                : null;
+        if (animal != null) {
+          await _cache.upsertAnimal(animal);
+          return {'success': true, 'data': animal};
+        }
+        return {'success': true, 'data': decoded};
       }
-    } catch (e) {
-      return {
-        'success': false,
-        'message':
-            'Erro de conexão: $e',
-      };
+    } catch (_) {
+      // Offline: tenta cache local.
     }
+
+    final local = await _cache.getAnimal(identifier);
+    if (local != null) {
+      return {'success': true, 'data': local, 'fromCache': true};
+    }
+
+    return {
+      'success': false,
+      'message': 'Animal não encontrado no sistema.',
+    };
   }
 
   Future<List<dynamic>> getAnimals() async {
     try {
-      final response =
-          await ApiClient.get('/animals');
+      final response = await ApiClient.get('/animals');
 
       if (response.statusCode == 200) {
-        final decoded =
-            jsonDecode(response.body);
-
-        if (decoded is List) {
-          return decoded;
-        }
-
-        if (decoded is Map) {
-          if (decoded.containsKey('data')) {
-            return decoded['data'];
-          }
-
-          if (decoded.containsKey(
-            'animals',
-          )) {
-            return decoded['animals'];
-          }
-        }
-
-        return [];
-      } else {
-        throw Exception(
-          'Erro no servidor: Status ${response.statusCode}',
+        final decoded = jsonDecode(response.body);
+        final list = _extractList(decoded);
+        await _cache.replaceAnimals(
+          list.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
         );
+        // Inclui animais locais ainda pendentes de sync.
+        final local = await _cache.getAnimals();
+        return _mergePreferLocalPending(list, local);
       }
-    } catch (e) {
-      print(
-        'Erro ao buscar rebanho: $e',
-      );
-
-      throw Exception(
-        'Falha de conexão ao buscar rebanho.',
-      );
+    } catch (_) {
+      // Offline: devolve cache.
     }
+
+    return await _cache.getAnimals();
+  }
+
+  List<dynamic> _extractList(dynamic decoded) {
+    if (decoded is List) return decoded;
+    if (decoded is Map) {
+      if (decoded['data'] is List) return decoded['data'] as List;
+      if (decoded['animals'] is List) return decoded['animals'] as List;
+    }
+    return [];
+  }
+
+  /// Mantém itens PENDING do cache que ainda não existem no payload do servidor.
+  List<dynamic> _mergePreferLocalPending(
+    List<dynamic> remote,
+    List<Map<String, dynamic>> local,
+  ) {
+    final remoteIds = <String>{};
+    for (final item in remote) {
+      if (item is Map) {
+        final id = item['sisovId']?.toString() ?? item['id']?.toString();
+        if (id != null) remoteIds.add(id);
+      }
+    }
+
+    final merged = List<dynamic>.from(remote);
+    for (final animal in local) {
+      final id = animal['sisovId']?.toString();
+      final syncStatus = animal['syncStatus']?.toString();
+      if (id != null &&
+          syncStatus == 'PENDING' &&
+          id.startsWith('local_') &&
+          !remoteIds.contains(id)) {
+        merged.insert(0, animal);
+      }
+    }
+    return merged;
   }
 
   Future<Map<String, dynamic>> transferAnimal({
@@ -103,56 +144,34 @@ class AnimalService {
     );
   }
 
-  /// Regista o abate do animal
-  /// e valida a IG
-  /// (Indicação Geográfica)
-  Future<Map<String, dynamic>>
-  slaughterAnimal(
-    String animalId,
-  ) async {
-    try {
-      final response =
-          await ApiClient.post(
-            '/animals/$animalId/slaughter',
-            {},
-          );
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': jsonDecode(response.body),
-        };
-      }
-
-      final error =
-          jsonDecode(response.body);
-
-      return {
-        'success': false,
-        'message':
-            error['message'] ??
-            'Erro ao registar abate.',
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'message':
-            'Erro de conexão ao registar abate.',
-      };
+  Future<Map<String, dynamic>> slaughterAnimal(String animalId) async {
+    final result = await SyncService.instance.submitWrite(
+      endpoint: '/animals/$animalId/slaughter',
+      payload: {},
+      label: 'Registro de abate',
+    );
+    if (result['success'] == true) {
+      await _cache.updateAnimalStatus(animalId, 'SLAUGHTERED');
     }
+    return result;
   }
 
-  /// Registra o abate do animal com requisitos técnicos da IG
-  /// Valida conformidade com Caderno de Especificações Técnicas
   Future<Map<String, dynamic>> registerSlaughter(
     SlaughterRegistration registration,
   ) async {
-    return SyncService.instance.submitWrite(
+    final result = await SyncService.instance.submitWrite(
       endpoint:
           '/animals/${registration.animalId}/slaughter-with-requirements',
       payload: registration.toJson(),
       label: 'Registro de abate',
     );
+    if (result['success'] == true) {
+      await _cache.updateAnimalStatus(
+        registration.animalId,
+        'SLAUGHTERED',
+      );
+    }
+    return result;
   }
 
   Future<Map<String, dynamic>> registerManagementEvent(
@@ -166,37 +185,20 @@ class AnimalService {
     );
   }
 
-  /// Procura o histórico completo
-  /// (Eventos e Movimentações)
-  Future<List<ManagementEventModel>>
-  getFullHistory(
-    String animalId,
-  ) async {
+  Future<List<ManagementEventModel>> getFullHistory(String animalId) async {
     try {
-      final response =
-          await ApiClient.get(
-            '/animals/$animalId/full-history',
-          );
+      final response = await ApiClient.get('/animals/$animalId/full-history');
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final events = <ManagementEventModel>[];
 
         if (body is Map<String, dynamic>) {
-          if (body['managementEvents'] is List) {
-            for (final item in body['managementEvents']) {
-              if (item is Map<String, dynamic>) {
-                events.add(ManagementEventModel.fromJson(item));
-              }
-            }
-          } else if (body['events'] is List) {
-            for (final item in body['events']) {
-              if (item is Map<String, dynamic>) {
-                events.add(ManagementEventModel.fromJson(item));
-              }
-            }
-          } else if (body['data'] is List) {
-            for (final item in body['data']) {
+          final list = body['managementEvents'] ??
+              body['events'] ??
+              body['data'];
+          if (list is List) {
+            for (final item in list) {
               if (item is Map<String, dynamic>) {
                 events.add(ManagementEventModel.fromJson(item));
               }

@@ -7,6 +7,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../api/api_client.dart';
+import '../db/local_cache.dart';
 import '../db/local_database.dart';
 
 /// Serviço central de sincronização offline-first (padrão outbox).
@@ -14,18 +15,17 @@ import '../db/local_database.dart';
 /// Toda escrita do app passa por [submitWrite]:
 /// - Com internet, a requisição é enviada imediatamente ao backend.
 /// - Sem internet (ou em falha de rede), ela é gravada na fila local
-///   ([LocalDatabase.tableSyncQueue]) e reenviada automaticamente assim que
-///   a conexão voltar (ou periodicamente).
+///   e reenviada automaticamente quando a conexão voltar.
 ///
-/// Cada item carrega um `clientRequestId` único, enviado no header
-/// `X-Client-Request-Id`, garantindo idempotência (o backend ignora reenvios
-/// duplicados).
+/// Suporta IDs temporários `local_...`: antes do envio, o payload/endpoint
+/// é reescrito com os UUIDs reais assim que o [LocalCache] tiver o mapeamento.
 class SyncService {
   SyncService._();
   static final SyncService instance = SyncService._();
 
   static const _uuid = Uuid();
   final Connectivity _connectivity = Connectivity();
+  final LocalCache _cache = LocalCache.instance;
 
   /// Quantidade de operações ainda não sincronizadas (para exibir na UI).
   final ValueNotifier<int> pendingCount = ValueNotifier<int>(0);
@@ -52,13 +52,10 @@ class SyncService {
       }
     });
 
-    // Rede de segurança: tenta esvaziar a fila periodicamente, caso um
-    // evento de conectividade tenha sido perdido.
     _periodicTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (pendingCount.value > 0) flush();
     });
 
-    // Tentativa inicial ao abrir o app.
     unawaited(flush());
   }
 
@@ -68,46 +65,70 @@ class SyncService {
   }
 
   bool _isOffline(List<ConnectivityResult> results) {
-    return results.isEmpty || results.every((r) => r == ConnectivityResult.none);
+    return results.isEmpty ||
+        results.every((r) => r == ConnectivityResult.none);
   }
 
-  Future<bool> _hasConnection() async {
+  Future<bool> _hasLink() async {
     final results = await _connectivity.checkConnectivity();
     return !_isOffline(results);
   }
 
+  /// Verifica se a API responde de fato (não só se há Wi‑Fi/dados).
+  Future<bool> _canReachApi() async {
+    if (!await _hasLink()) return false;
+    try {
+      final response = await ApiClient.get('/health').timeout(
+        const Duration(seconds: 5),
+      );
+      return response.statusCode >= 200 && response.statusCode < 500;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Envia uma escrita agora (se houver internet) ou a coloca na fila.
   ///
-  /// Retorna um mapa no mesmo formato dos services:
-  /// - `{'success': true, 'data': ...}` quando enviado ao servidor;
-  /// - `{'success': true, 'queued': true, 'message': ...}` quando enfileirado;
-  /// - `{'success': false, 'message': ...}` quando o servidor recusou (erro real).
+  /// [entityType] / [localEntityId] permitem promover o registro local
+  /// (`local_...`) para o UUID do servidor após o sucesso.
   Future<Map<String, dynamic>> submitWrite({
     required String endpoint,
     required Map<String, dynamic> payload,
     required String label,
+    String? entityType,
+    String? localEntityId,
   }) async {
     final requestId = _uuid.v4();
 
-    if (await _hasConnection()) {
+    if (await _canReachApi()) {
       try {
-        final response =
-            await ApiClient.post(endpoint, payload, requestId: requestId);
+        final rewrittenEndpoint = await _cache.rewriteIdsInString(endpoint);
+        final rewrittenPayload = await _cache.rewriteIdsInMap(payload);
 
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          return {
-            'success': true,
-            'data': _tryDecode(response.body),
-          };
+        if (rewrittenEndpoint != null && rewrittenPayload != null) {
+          final response = await ApiClient.post(
+            rewrittenEndpoint,
+            rewrittenPayload,
+            requestId: requestId,
+          );
+
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            final data = _tryDecode(response.body);
+            await _promoteAfterSuccess(
+              entityType: entityType,
+              localEntityId: localEntityId,
+              responseData: data,
+            );
+            return {'success': true, 'data': data};
+          }
+
+          final decoded = _tryDecode(response.body);
+          final message = decoded is Map && decoded['message'] != null
+              ? decoded['message'].toString()
+              : 'Erro ao enviar (código ${response.statusCode}).';
+          return {'success': false, 'message': message};
         }
-
-        // Servidor respondeu recusando (validação, permissão, etc.).
-        // Não adianta reenviar — devolve o erro ao usuário.
-        final decoded = _tryDecode(response.body);
-        final message = decoded is Map && decoded['message'] != null
-            ? decoded['message'].toString()
-            : 'Erro ao enviar (código ${response.statusCode}).';
-        return {'success': false, 'message': message};
+        // IDs locais ainda sem mapeamento: enfileira.
       } catch (_) {
         // Falha de rede durante o envio: cai para a fila.
       }
@@ -118,12 +139,15 @@ class SyncService {
       label: label,
       endpoint: endpoint,
       payload: payload,
+      entityType: entityType,
+      localEntityId: localEntityId,
     );
 
     return {
       'success': true,
       'queued': true,
       'message': offlineMessage,
+      'localEntityId': localEntityId,
     };
   }
 
@@ -132,6 +156,8 @@ class SyncService {
     required String label,
     required String endpoint,
     required Map<String, dynamic> payload,
+    String? entityType,
+    String? localEntityId,
   }) async {
     final db = await LocalDatabase.instance.database;
     await db.insert(LocalDatabase.tableSyncQueue, {
@@ -143,15 +169,16 @@ class SyncService {
       'status': 'PENDING',
       'retry_count': 0,
       'created_at': DateTime.now().toIso8601String(),
+      'entity_type': entityType,
+      'local_entity_id': localEntityId,
     });
     await _refreshPendingCount();
   }
 
-  /// Processa a fila em ordem (FIFO). Preserva a ordem parando no primeiro
-  /// item que falhar por rede/servidor indisponível.
+  /// Processa a fila em ordem (FIFO).
   Future<void> flush() async {
     if (_isSyncing) return;
-    if (!await _hasConnection()) return;
+    if (!await _canReachApi()) return;
 
     _isSyncing = true;
     try {
@@ -170,27 +197,48 @@ class SyncService {
         final requestId = row['client_request_id'] as String;
         final payload =
             jsonDecode(row['payload_json'] as String) as Map<String, dynamic>;
+        final entityType = row['entity_type'] as String?;
+        final localEntityId = row['local_entity_id'] as String?;
+
+        final rewrittenEndpoint = await _cache.rewriteIdsInString(endpoint);
+        final rewrittenPayload = await _cache.rewriteIdsInMap(payload);
+
+        // Dependência ainda não sincronizada (ex.: animal espera property).
+        if (rewrittenEndpoint == null || rewrittenPayload == null) {
+          break;
+        }
 
         try {
-          final response =
-              await ApiClient.post(endpoint, payload, requestId: requestId);
+          final response = await ApiClient.post(
+            rewrittenEndpoint,
+            rewrittenPayload,
+            requestId: requestId,
+          );
 
           if (response.statusCode >= 200 && response.statusCode < 300) {
+            final data = _tryDecode(response.body);
+            await _promoteAfterSuccess(
+              entityType: entityType,
+              localEntityId: localEntityId,
+              responseData: data,
+            );
             await db.delete(
               LocalDatabase.tableSyncQueue,
               where: 'id = ?',
               whereArgs: [id],
             );
           } else if (response.statusCode >= 400 && response.statusCode < 500) {
-            // Recusa definitiva do servidor: marca como FALHO e segue adiante.
-            await _markFailed(db, id, row, 'HTTP ${response.statusCode}: ${response.body}');
+            await _markFailed(
+              db,
+              id,
+              row,
+              'HTTP ${response.statusCode}: ${response.body}',
+            );
           } else {
-            // Servidor indisponível (5xx): tenta mais tarde, preservando ordem.
             await _incrementRetry(db, id, row, 'HTTP ${response.statusCode}');
             break;
           }
         } catch (e) {
-          // Falha de rede: interrompe e tenta novamente depois.
           await _incrementRetry(db, id, row, e.toString());
           break;
         }
@@ -199,6 +247,46 @@ class SyncService {
       _isSyncing = false;
       await _refreshPendingCount();
     }
+  }
+
+  Future<void> _promoteAfterSuccess({
+    required String? entityType,
+    required String? localEntityId,
+    required dynamic responseData,
+  }) async {
+    if (entityType == null || localEntityId == null) return;
+    if (!localEntityId.startsWith('local_')) return;
+
+    final data = _extractData(responseData);
+    if (data == null) return;
+
+    if (entityType == 'property') {
+      final serverId = data['id']?.toString();
+      if (serverId == null || serverId.isEmpty) return;
+      await _cache.promoteProperty(
+        localId: localEntityId,
+        serverId: serverId,
+        serverData: data,
+      );
+    } else if (entityType == 'animal') {
+      final serverId =
+          data['sisovId']?.toString() ?? data['id']?.toString();
+      if (serverId == null || serverId.isEmpty) return;
+      await _cache.promoteAnimal(
+        localId: localEntityId,
+        serverId: serverId,
+        serverData: data,
+      );
+    }
+  }
+
+  Map<String, dynamic>? _extractData(dynamic responseData) {
+    if (responseData is Map<String, dynamic>) {
+      final nested = responseData['data'];
+      if (nested is Map<String, dynamic>) return nested;
+      return responseData;
+    }
+    return null;
   }
 
   Future<void> _markFailed(
@@ -239,7 +327,7 @@ class SyncService {
   Future<void> _refreshPendingCount() async {
     final db = await LocalDatabase.instance.database;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) AS c FROM ${LocalDatabase.tableSyncQueue}',
+      "SELECT COUNT(*) AS c FROM ${LocalDatabase.tableSyncQueue} WHERE status = 'PENDING'",
     );
     pendingCount.value = Sqflite.firstIntValue(result) ?? 0;
   }
@@ -251,4 +339,7 @@ class SyncService {
       return null;
     }
   }
+
+  /// Gera um ID temporário local (`local_<uuid>`).
+  static String newLocalId() => 'local_${_uuid.v4()}';
 }
