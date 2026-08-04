@@ -286,8 +286,14 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
               'Coleira: ${animal['tagId'] ?? 'N/A'}', 
               style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)
             ),
-            subtitle: Text(animal['breed'] ?? 'Raça não informada'),
-            trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            subtitle: Text(
+              animal['syncStatus'] == 'PENDING'
+                  ? '${animal['breed'] ?? 'Raça não informada'} · Aguardando envio'
+                  : (animal['breed'] ?? 'Raça não informada'),
+            ),
+            trailing: animal['syncStatus'] == 'PENDING'
+                ? const Icon(Icons.cloud_upload_outlined, color: Colors.orange)
+                : const Icon(Icons.chevron_right, color: AppColors.textMuted),
             onTap: () {
               if (widget.isTransferMode) {
                 _iniciarTransferenciaComDestino(animal);
