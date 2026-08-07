@@ -16,7 +16,14 @@ import 'slaughter_registration_screen.dart';
 class AnimalDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> animal;
 
-  const AnimalDetailsScreen({super.key, required this.animal});
+  /// Quando true, oculta ações de escrita (manejo, abate, etc.).
+  final bool readOnly;
+
+  const AnimalDetailsScreen({
+    super.key,
+    required this.animal,
+    this.readOnly = false,
+  });
 
   @override
   State<AnimalDetailsScreen> createState() => _AnimalDetailsScreenState();
@@ -38,6 +45,7 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
     final bool isMale = animal['sex'] == 'MALE';
 
     final bool isActive = animal['status'] == statusActive;
+    final bool canManage = isActive && !widget.readOnly;
 
     final bool isSlaughtered = animal['status'] == statusSlaughtered;
 
@@ -127,16 +135,28 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
               child: Column(
                 children: [
                   Text(
-                    isSlaughtered
-                        ? "QR Code de Rastreabilidade"
-                        : "QR Code de Manejo",
-
+                    widget.readOnly
+                        ? 'Consulta de rastreabilidade'
+                        : (isSlaughtered
+                            ? 'QR Code de Rastreabilidade'
+                            : 'QR Code de Manejo'),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                       color: AppColors.textPrimary,
                     ),
                   ),
+                  if (widget.readOnly) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Modo somente leitura — você não é o dono deste animal.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange.shade800,
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 16),
 
@@ -291,7 +311,7 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
             ),
             const SizedBox(height: 16),
 
-            if (isActive)
+            if (canManage)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -333,7 +353,7 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
             const SizedBox(height: 30),
 
             // BOTÃO ABATE
-            if (isActive)
+            if (canManage)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: SizedBox(

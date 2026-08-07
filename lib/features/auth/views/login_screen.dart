@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/session/session_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../../../core/utils/validators.dart';
@@ -37,6 +38,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (resultado['success']) {
+        // Persiste o snapshot do produtor (propriedades/animais) para uso offline.
+        await SessionService.instance.warmCache();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(resultado['message']), backgroundColor: Colors.green),
         );
@@ -72,32 +76,19 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                padding: const EdgeInsets.fromLTRB(24, 56, 24, 32),
+                padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
                 width: double.infinity,
                 child: Column(
                   children: [
-                    Container(
-                      width: 92,
-                      height: 92,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                      ),
-                      child: const Icon(Icons.login_rounded, color: Colors.white, size: 44),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Acesse o SISOV',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: -0.5,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset(
+                        'assets/images/logo_sisov.png',
+                        width: 280,
+                        fit: BoxFit.contain,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
                     const Text(
                       'E-mail e senha cadastrados',
                       textAlign: TextAlign.center,

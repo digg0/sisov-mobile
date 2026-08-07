@@ -29,7 +29,17 @@ class SelectPropertyForAnimalScreen extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("Nenhuma fazenda encontrada."));
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'Nenhuma fazenda encontrada.\n\n'
+                  'Se estiver offline, abra o app com internet uma vez '
+                  'para salvar suas fazendas no aparelho.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
           }
 
           return ListView.builder(

@@ -9,6 +9,17 @@ class LocalCache {
 
   Future<Database> get _db => LocalDatabase.instance.database;
 
+  /// Apaga todo o snapshot local (logout / troca de conta).
+  Future<void> clearAll() async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      await txn.delete(LocalDatabase.tableSyncQueue);
+      await txn.delete(LocalDatabase.tableAnimals);
+      await txn.delete(LocalDatabase.tableProperties);
+      await txn.delete(LocalDatabase.tableIdMap);
+    });
+  }
+
   // ─── ID map ────────────────────────────────────────────────────────────
 
   Future<void> mapId({
@@ -96,6 +107,15 @@ class LocalCache {
 
   Future<void> replaceProperties(List<Map<String, dynamic>> properties) async {
     final db = await _db;
+    // Evita apagar o snapshot local se a API devolver lista vazia por falha parcial.
+    if (properties.isEmpty) {
+      final existing = await db.query(
+        LocalDatabase.tableProperties,
+        where: "sync_status = 'SYNCED'",
+        limit: 1,
+      );
+      if (existing.isNotEmpty) return;
+    }
     await db.transaction((txn) async {
       // Mantém propriedades ainda não sincronizadas.
       await txn.delete(
@@ -225,6 +245,14 @@ class LocalCache {
 
   Future<void> replaceAnimals(List<Map<String, dynamic>> animals) async {
     final db = await _db;
+    if (animals.isEmpty) {
+      final existing = await db.query(
+        LocalDatabase.tableAnimals,
+        where: "sync_status = 'SYNCED'",
+        limit: 1,
+      );
+      if (existing.isNotEmpty) return;
+    }
     await db.transaction((txn) async {
       await txn.delete(
         LocalDatabase.tableAnimals,
