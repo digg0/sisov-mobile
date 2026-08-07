@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../../../core/api/api_client.dart';
 import '../../../core/db/local_cache.dart';
 import '../../../core/sync/sync_service.dart';
+import '../../../core/utils/api_error_messages.dart';
 import '../models/management_event_model.dart';
 import '../models/slaughter_registration_model.dart';
 
@@ -57,6 +58,20 @@ class AnimalService {
         }
         return {'success': true, 'data': decoded};
       }
+
+      final localOnError = await _cache.getAnimal(identifier);
+      if (localOnError != null) {
+        return {'success': true, 'data': localOnError, 'fromCache': true};
+      }
+
+      return {
+        'success': false,
+        'message': ApiErrorMessages.fromHttp(
+          statusCode: response.statusCode,
+          body: response.body,
+          action: ApiAction.generic,
+        ),
+      };
     } catch (_) {
       // Offline: tenta cache local.
     }
@@ -68,7 +83,8 @@ class AnimalService {
 
     return {
       'success': false,
-      'message': 'Animal não encontrado no sistema.',
+      'message':
+          'Animal não encontrado. Sem internet, só é possível abrir animais já salvos neste aparelho.',
     };
   }
 

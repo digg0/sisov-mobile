@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../../../core/api/api_client.dart';
 import '../../../core/db/local_cache.dart';
 import '../../../core/security/secure_store.dart';
+import '../../../core/utils/api_error_messages.dart';
 
 class AuthService {
   final _storage = SecureStore.instance;
@@ -44,10 +45,10 @@ class AuthService {
         'email': email,
         'password': password,
       });
-      final responseData = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        if (responseData['token'] != null) {
+        final responseData = jsonDecode(response.body);
+        if (responseData is Map && responseData['token'] != null) {
           final previousUserId = await getCurrentUserId();
 
           await _storage.write(
@@ -75,15 +76,29 @@ class AuthService {
             await LocalCache.instance.clearAll();
           }
 
-          return {'success': true, 'message': 'Login realizado com sucesso'};
+          return {
+            'success': true,
+            'message': 'Login realizado com sucesso. Bem-vindo!',
+          };
         }
       }
+
       return {
         'success': false,
-        'message': responseData['message'] ?? 'Erro ao realizar login',
+        'message': ApiErrorMessages.fromHttp(
+          statusCode: response.statusCode,
+          body: response.body,
+          action: ApiAction.login,
+        ),
       };
     } catch (e) {
-      return {'success': false, 'message': 'Erro de conexão.'};
+      return {
+        'success': false,
+        'message': ApiErrorMessages.fromException(
+          e,
+          action: ApiAction.login,
+        ),
+      };
     }
   }
 
@@ -103,38 +118,31 @@ class AuthService {
           'password': password,
         },
       );
-      final responseData = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
         return {
           'success': true,
           'message':
-              'Cadastro realizado com sucesso! Faça login para continuar.',
-        };
-      } else if (response.statusCode == 409) {
-        return {
-          'success': false,
-          'message': responseData['message'] ??
-              'Já existe um produtor com este documento ou e-mail.',
-        };
-      } else if (response.statusCode == 422) {
-        return {
-          'success': false,
-          'message':
-              responseData['message'] ?? 'Erro de validação dos campos.',
-        };
-      } else if (response.statusCode == 429) {
-        return {
-          'success': false,
-          'message': 'Muitas tentativas. Tente novamente em 15 minutos.',
+              'Cadastro realizado com sucesso! Agora faça login para continuar.',
         };
       }
+
       return {
         'success': false,
-        'message': responseData['message'] ?? 'Erro ao realizar cadastro.',
+        'message': ApiErrorMessages.fromHttp(
+          statusCode: response.statusCode,
+          body: response.body,
+          action: ApiAction.register,
+        ),
       };
     } catch (e) {
-      return {'success': false, 'message': 'Erro de conexão.'};
+      return {
+        'success': false,
+        'message': ApiErrorMessages.fromException(
+          e,
+          action: ApiAction.register,
+        ),
+      };
     }
   }
 

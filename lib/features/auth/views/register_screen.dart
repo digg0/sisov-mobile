@@ -59,13 +59,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (resultado['success']) {
         // Sucesso! Mostra snackbar verde e volta para login
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(resultado['message']), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(
+              resultado['message'] ??
+                  'Cadastro realizado com sucesso! Faça login para continuar.',
+            ),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context); // Volta para a tela de login
       } else {
-        // Erro! Mostra snackbar vermelha com erro da API
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(resultado['message']), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(
+              resultado['message'] ??
+                  'Não foi possível concluir o cadastro. Tente novamente.',
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }

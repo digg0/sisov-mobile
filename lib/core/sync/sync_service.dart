@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../api/api_client.dart';
 import '../db/local_cache.dart';
 import '../db/local_database.dart';
+import '../utils/api_error_messages.dart';
 
 /// Serviço central de sincronização offline-first (padrão outbox).
 ///
@@ -130,11 +131,14 @@ class SyncService {
             return {'success': true, 'data': data};
           }
 
-          final decoded = _tryDecode(response.body);
-          final message = decoded is Map && decoded['message'] != null
-              ? decoded['message'].toString()
-              : 'Erro ao enviar (código ${response.statusCode}).';
-          return {'success': false, 'message': message};
+          return {
+            'success': false,
+            'message': ApiErrorMessages.fromHttp(
+              statusCode: response.statusCode,
+              body: response.body,
+              action: _actionForEndpoint(endpoint),
+            ),
+          };
         }
         // IDs locais ainda sem mapeamento: enfileira.
       } catch (_) {
@@ -368,6 +372,15 @@ class SyncService {
     } catch (_) {
       return null;
     }
+  }
+
+  ApiAction _actionForEndpoint(String endpoint) {
+    if (endpoint.contains('/transfer')) return ApiAction.transfer;
+    if (endpoint.contains('slaughter')) return ApiAction.slaughter;
+    if (endpoint.contains('management-events')) return ApiAction.management;
+    if (endpoint.startsWith('/properties')) return ApiAction.createProperty;
+    if (endpoint.startsWith('/animals')) return ApiAction.createAnimal;
+    return ApiAction.generic;
   }
 
   /// Gera um ID temporário local (`local_<uuid>`).

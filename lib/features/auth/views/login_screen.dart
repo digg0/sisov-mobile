@@ -42,12 +42,22 @@ class _LoginScreenState extends State<LoginScreen> {
         await SessionService.instance.warmCache();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(resultado['message']), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(resultado['message'] ?? 'Login realizado com sucesso.'),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pushReplacementNamed(context, '/home');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(resultado['message']), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(
+              resultado['message'] ??
+                  'Não foi possível entrar. Tente novamente.',
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
