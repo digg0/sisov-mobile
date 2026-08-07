@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_theme.dart';
 import '../services/property_service.dart';
 import '../../../core/utils/validators.dart';
@@ -86,9 +87,9 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
               const SizedBox(height: 20),
 
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    flex: 3,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -96,14 +97,16 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
                         TextFormField(
                           controller: _cityController,
                           decoration: _inputStyle('Cidade', Icons.location_city),
-                          validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null,
+                          validator: (v) =>
+                              v == null || v.isEmpty ? 'Obrigatório' : null,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 1,
+                  const SizedBox(width: 12),
+                  // Largura fixa suficiente para 2 letras sem o ícone comer o texto.
+                  SizedBox(
+                    width: 88,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -111,8 +114,49 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
                         TextFormField(
                           controller: _stateController,
                           maxLength: 2,
-                          decoration: _inputStyle('CE', Icons.map),
-                          validator: AppValidators.state, // Usando o validador que criamos
+                          textAlign: TextAlign.center,
+                          textCapitalization: TextCapitalization.characters,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.5,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[a-zA-Z]'),
+                            ),
+                            LengthLimitingTextInputFormatter(2),
+                          ],
+                          decoration: InputDecoration(
+                            hintText: 'CE',
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            counterText: '',
+                            filled: true,
+                            fillColor: AppColors.background,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: AppColors.border),
+                            ),
+                          ),
+                          validator: AppValidators.state,
+                          onChanged: (value) {
+                            final upper = value.toUpperCase();
+                            if (value != upper) {
+                              _stateController.value = TextEditingValue(
+                                text: upper,
+                                selection: TextSelection.collapsed(
+                                  offset: upper.length,
+                                ),
+                              );
+                            }
+                          },
                         ),
                       ],
                     ),

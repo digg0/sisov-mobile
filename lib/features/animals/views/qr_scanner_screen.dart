@@ -57,9 +57,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 final String? code = barcodes.first.rawValue;
                 if (code != null) {
                   _isProcessing = true; // Trava para não ler de novo
-                  print("SCANNER LEU: $code");
-
-                  // Use o Navigator.of(context).pop diretamente aqui para ser instantâneo
                   Navigator.of(context).pop(code);
                 }
               }

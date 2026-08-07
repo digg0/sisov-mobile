@@ -1,6 +1,8 @@
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
+import 'database_init.dart';
+
 /// Banco local (sqflite) do SISOV offline-first.
 ///
 /// - [tableSyncQueue]: fila outbox de escritas pendentes
@@ -26,6 +28,9 @@ class LocalDatabase {
   }
 
   Future<Database> _open() async {
+    // Garante factory WASM no Chrome mesmo se main() não tiver rodado de novo.
+    await initDatabaseFactory();
+
     final dbPath = await getDatabasesPath();
     final path = p.join(dbPath, _dbName);
 

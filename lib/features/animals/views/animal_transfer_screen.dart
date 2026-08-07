@@ -55,9 +55,7 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
           backgroundColor: Colors.blue,
         ),
       );
-    } catch (e) {
-      // Caso o QR Code lido seja um link de animal ou texto inválido
-      print("Erro ao processar JSON: $e");
+    } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('QR Code inválido para transferência.'),
@@ -68,8 +66,6 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
   }
 
   void _executarTransferencia() async {
-    print("Iniciando transferência do animal: ${widget.animalId}");
-    print("Para a propriedade: ${_propertyIdController.text}");
     if (_producerIdController.text.isEmpty || _propertyIdController.text.isEmpty) {
       _mostrarErro('Preencha os campos ou escaneie o código de destino.');
       return;

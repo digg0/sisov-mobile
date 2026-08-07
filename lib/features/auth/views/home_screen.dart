@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/db/local_cache.dart';
+import '../../../core/session/session_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/sync/sync_service.dart';
 import '../services/auth_service.dart';
@@ -8,6 +11,7 @@ import '../../animals/services/animal_service.dart';
 import '../../animals/views/animal_search_screen.dart';
 import '../../animals/views/animal_details_screen.dart';
 import '../../animals/views/qr_scanner_screen.dart';
+import '../../properties/services/property_service.dart';
 import '../../properties/views/properties_create_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -20,13 +24,16 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _authService = AuthService();
   final _animalService = AnimalService();
+  final _propertyService = PropertyService();
 
   Map<String, dynamic>? _userProfile;
   bool _isLoadingProfile = true;
   int _cachedSlaughteredCount = 0;
-  // Contador de sessão: incrementado imediatamente no sucesso; sincronizado
-  // com a API a cada _loadUserData (prevalece o maior dos dois).
   int _cachedTransferCount = 0;
+  int _cachedTotalAnimals = 0;
+  int _cachedActiveAnimals = 0;
+  int _cachedFemaleCount = 0;
+  bool _showingCachedSnapshot = false;
 
   @override
   void initState() {
@@ -35,12 +42,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserData() async {
+    // 1) Snapshot local imediato (funciona offline).
+    final cachedProfile = await _authService.getCachedProfile();
+    if (cachedProfile != null && mounted) {
+      setState(() {
+        _userProfile = cachedProfile;
+        _isLoadingProfile = false;
+        _showingCachedSnapshot = true;
+      });
+      await _applyHerdCountsFromCache();
+    }
+
+    // 2) Atualiza perfil (API ou cache) + aquece propriedades/animais.
     final profile = await _authService.getProfile();
+    await Future.wait([
+      _propertyService.getProperties(),
+      _animalService.getAnimals(),
+    ]);
     if (!mounted) return;
 
-    // Atualiza o perfil antes de calcular os contadores derivados,
-    // para que _countProfileValue leia os dados frescos.
-    _userProfile = profile;
+    if (profile != null) {
+      _userProfile = profile;
+      _showingCachedSnapshot = false;
+    } else if (_userProfile == null) {
+      _userProfile = await _authService.getCachedProfile();
+      _showingCachedSnapshot = _userProfile != null;
+    }
+
+    await _applyHerdCountsFromCache();
 
     final slaughteredCount = await _getSlaughteredCount();
     if (!mounted) return;
@@ -49,11 +78,33 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       _isLoadingProfile = false;
-      _cachedSlaughteredCount = slaughteredCount;
-      // Preserva o maior valor: contagem local de sessão vs. API
+      _cachedSlaughteredCount = slaughteredCount > 0
+          ? slaughteredCount
+          : _cachedSlaughteredCount;
       if (apiTransferCount > _cachedTransferCount) {
         _cachedTransferCount = apiTransferCount;
       }
+    });
+  }
+
+  Future<void> _applyHerdCountsFromCache() async {
+    final animals = await LocalCache.instance.getAnimals();
+    if (!mounted) return;
+    setState(() {
+      _cachedTotalAnimals = animals.length;
+      _cachedActiveAnimals = animals
+          .where((a) => a['status']?.toString() == 'ACTIVE')
+          .length;
+      _cachedFemaleCount = animals
+          .where(
+            (a) =>
+                a['sex']?.toString() == 'FEMALE' &&
+                a['status']?.toString() == 'ACTIVE',
+          )
+          .length;
+      _cachedSlaughteredCount = animals
+          .where((a) => a['status']?.toString() == 'SLAUGHTERED')
+          .length;
     });
   }
 
@@ -127,21 +178,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (res['success']) {
         final animal = res['data'];
-        
-        // If it's a management QR code, verify ownership
-        if (isManagementQR) {
-          final currentUserId = _userProfile?['id']?.toString();
-          final animalProducerId = animal['producerId']?.toString() ?? 
-                                   animal['property']?['producerId']?.toString();
-          
-          if (currentUserId == null || currentUserId != animalProducerId) {
-            _loadUserData();
-            _mostrarErro("Acesso negado: Este animal pertence a outro produtor.");
-            return;
-          }
+        final isOwner = await _isOwnedAnimal(animal);
+
+        // QR público: apenas leitura. QR de manejo: exige propriedade.
+        if (isManagementQR && !isOwner) {
+          _loadUserData();
+          _mostrarErro(
+            'Acesso negado: este animal pertence a outro produtor.',
+          );
+          return;
         }
-        
-        _navTo(AnimalDetailsScreen(animal: animal));
+
+        _navTo(AnimalDetailsScreen(
+          animal: animal,
+          readOnly: !isOwner,
+        ));
       } else {
         _loadUserData();
         _mostrarErro("Animal não localizado.");
@@ -153,6 +204,25 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), backgroundColor: Colors.red),
     );
+  }
+
+  /// Confirma se o animal pertence ao produtor logado (API ou cache local).
+  Future<bool> _isOwnedAnimal(Map<String, dynamic> animal) async {
+    final currentUserId = _userProfile?['id']?.toString();
+    final animalProducerId = animal['producerId']?.toString() ??
+        animal['property']?['producerId']?.toString();
+    if (currentUserId != null &&
+        animalProducerId != null &&
+        currentUserId == animalProducerId) {
+      return true;
+    }
+
+    final propertyId = animal['propertyId']?.toString() ??
+        animal['property']?['id']?.toString();
+    if (propertyId == null || propertyId.isEmpty) return false;
+
+    final properties = await LocalCache.instance.getProperties();
+    return properties.any((p) => p['id']?.toString() == propertyId);
   }
 
   Future<int> _getSlaughteredCount() async {
@@ -205,11 +275,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showDebugProfile() {
-    final profileJson = _userProfile != null ? _userProfile!.toString() : "Nenhum perfil carregado";
+    if (!kDebugMode) return;
+    final profileJson =
+        _userProfile != null ? _userProfile!.toString() : 'Nenhum perfil carregado';
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Debug: Perfil Completo"),
+        title: const Text('Debug: Perfil Completo'),
         content: SingleChildScrollView(
           child: Text(
             profileJson,
@@ -219,11 +291,17 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Fechar"),
+            child: const Text('Fechar'),
           ),
         ],
       ),
     );
+  }
+
+  int _displayCount(List<String> profileKeys, int cacheFallback) {
+    final fromProfile = _countProfileValue(profileKeys);
+    if (fromProfile > 0) return fromProfile;
+    return cacheFallback;
   }
 
   @override
@@ -274,11 +352,30 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // BOTÃO DEBUG: Mostra todos os campos do perfil
-                        GestureDetector(
-                          onLongPress: () => _showDebugProfile(),
-                          child: const SizedBox.shrink(),
-                        ),
+                        if (kDebugMode)
+                          GestureDetector(
+                            onLongPress: _showDebugProfile,
+                            child: const SizedBox.shrink(),
+                          ),
+                        if (_showingCachedSnapshot)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: [
+                                Icon(Icons.cloud_off,
+                                    size: 16, color: Colors.orange.shade800),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Exibindo dados salvos no aparelho',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange.shade800,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         const Text(
                           "O que fazer",
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
@@ -293,13 +390,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 16),
                         _buildStatusItem(
                           "Fêmeas em reprodução",
-                          _countProfileValue([
+                          _displayCount([
                             'femaleCount',
                             'female_count',
                             'femalesCount',
                             'females_count',
                             'female_animals_count',
-                          ]).toString().padLeft(2, '0'),
+                          ], _cachedFemaleCount)
+                              .toString()
+                              .padLeft(2, '0'),
                           Icons.female,
                           Colors.pink,
                         ),
@@ -337,18 +436,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatHeader() {
-    final total = _countProfileValue([
+    final total = _displayCount([
       'totalAnimals',
       'total_animals',
       'animalsCount',
       'animals_count',
-    ]).toString();
-    final ativos = _countProfileValue([
+    ], _cachedTotalAnimals)
+        .toString();
+    final ativos = _displayCount([
       'activeAnimals',
       'active_animals',
       'activeAnimalCount',
       'active_animal_count',
-    ]).toString();
+    ], _cachedActiveAnimals)
+        .toString();
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
@@ -580,9 +681,15 @@ class _HomeScreenState extends State<HomeScreen> {
             child: _drawerItem(
               Icons.logout,
               'Sair da Conta',
-                  () async {
-                await _authService.logout();
-                if (mounted) Navigator.pushReplacementNamed(context, '/login');
+              () async {
+                await SessionService.instance.logoutAndWipe();
+                if (mounted) {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (_) => false,
+                  );
+                }
               },
               color: Colors.red,
             ),

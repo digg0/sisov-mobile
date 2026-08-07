@@ -34,6 +34,7 @@ class SyncService {
   Timer? _periodicTimer;
   bool _isSyncing = false;
   bool _initialized = false;
+  bool _paused = false;
 
   /// Mensagem padrão exibida quando algo é salvo apenas localmente.
   static const offlineMessage =
@@ -63,6 +64,13 @@ class SyncService {
     _connSub?.cancel();
     _periodicTimer?.cancel();
   }
+
+  /// Pausa o flush (ex.: durante logout/wipe).
+  void pause() => _paused = true;
+
+  void resume() => _paused = false;
+
+  Future<void> refreshPendingCount() => _refreshPendingCount();
 
   bool _isOffline(List<ConnectivityResult> results) {
     return results.isEmpty ||
@@ -134,6 +142,17 @@ class SyncService {
       }
     }
 
+    // Evita enfileirar a mesma transferência várias vezes (toques repetidos).
+    if (endpoint.contains('/transfer') &&
+        await _hasPendingEndpoint(endpoint)) {
+      return {
+        'success': true,
+        'queued': true,
+        'message': offlineMessage,
+        'localEntityId': localEntityId,
+      };
+    }
+
     await _enqueue(
       requestId: requestId,
       label: label,
@@ -149,6 +168,17 @@ class SyncService {
       'message': offlineMessage,
       'localEntityId': localEntityId,
     };
+  }
+
+  Future<bool> _hasPendingEndpoint(String endpoint) async {
+    final db = await LocalDatabase.instance.database;
+    final rows = await db.query(
+      LocalDatabase.tableSyncQueue,
+      where: 'status = ? AND endpoint = ?',
+      whereArgs: ['PENDING', endpoint],
+      limit: 1,
+    );
+    return rows.isNotEmpty;
   }
 
   Future<void> _enqueue({
@@ -177,7 +207,7 @@ class SyncService {
 
   /// Processa a fila em ordem (FIFO).
   Future<void> flush() async {
-    if (_isSyncing) return;
+    if (_paused || _isSyncing) return;
     if (!await _canReachApi()) return;
 
     _isSyncing = true;
