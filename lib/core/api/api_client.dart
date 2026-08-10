@@ -33,7 +33,8 @@ class ApiClient {
 
   static bool _isAuthPublicEndpoint(String endpoint) {
     return endpoint.startsWith('/auth/login') ||
-        endpoint.startsWith('/auth/register');
+        endpoint.startsWith('/auth/register') ||
+        endpoint.startsWith('/auth/google');
   }
 
   static Future<void> _handleUnauthorized(
@@ -41,7 +42,7 @@ class ApiClient {
     http.Response response,
   ) async {
     if (response.statusCode != 401) return;
-    // Login/register com senha errada também retornam 401 — não limpar sessão.
+    // Falhas nas rotas públicas de autenticação não invalidam a sessão atual.
     if (_isAuthPublicEndpoint(endpoint)) return;
     if (_handlingUnauthorized) return;
     final callback = onUnauthorized;

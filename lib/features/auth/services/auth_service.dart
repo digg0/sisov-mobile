@@ -49,32 +49,7 @@ class AuthService {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData is Map && responseData['token'] != null) {
-          final previousUserId = await getCurrentUserId();
-
-          await _storage.write(
-            key: SecureStore.jwtTokenKey,
-            value: responseData['token'],
-          );
-
-          // Se mudou de conta, limpa o snapshot offline do usuário anterior.
-          Map<String, dynamic>? profile;
-          try {
-            final profileResponse = await ApiClient.get('/auth/profile');
-            if (profileResponse.statusCode == 200) {
-              final decoded = jsonDecode(profileResponse.body);
-              if (decoded is Map) {
-                profile = Map<String, dynamic>.from(decoded);
-                await _saveProfile(profile);
-              }
-            }
-          } catch (_) {}
-
-          final newUserId = profile?['id']?.toString();
-          if (previousUserId != null &&
-              newUserId != null &&
-              previousUserId != newUserId) {
-            await LocalCache.instance.clearAll();
-          }
+          await _finishAuthentication(responseData);
 
           return {
             'success': true,
@@ -100,6 +75,136 @@ class AuthService {
         ),
       };
     }
+  }
+
+  /// Troca um ID token verificado pelo Google por uma sessão JWT do SISOV.
+  Future<Map<String, dynamic>> loginWithGoogle(String idToken) async {
+    try {
+      final response = await ApiClient.post('/auth/google', {
+        'idToken': idToken,
+      });
+      final decoded = _decodeMap(response.body);
+
+      if (response.statusCode == 200 && decoded?['token'] != null) {
+        await _finishAuthentication(decoded!);
+        return {
+          'success': true,
+          'message': 'Login com Google realizado com sucesso.',
+        };
+      }
+
+      if (response.statusCode == 428 &&
+          decoded?['code'] == 'PROFILE_COMPLETION_REQUIRED' &&
+          decoded?['onboardingToken'] is String) {
+        return {
+          'success': false,
+          'requiresProfileCompletion': true,
+          'onboardingToken': decoded!['onboardingToken'],
+          'profile': decoded['profile'],
+          'message':
+              'Informe seu CPF ou CNPJ para concluir o cadastro no SISOV.',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': ApiErrorMessages.fromHttp(
+          statusCode: response.statusCode,
+          body: response.body,
+          action: ApiAction.googleLogin,
+        ),
+      };
+    } catch (error) {
+      return {
+        'success': false,
+        'message': ApiErrorMessages.fromException(
+          error,
+          action: ApiAction.googleLogin,
+        ),
+      };
+    }
+  }
+
+  /// Conclui o primeiro acesso Google com o documento obrigatório do produtor.
+  Future<Map<String, dynamic>> completeGoogleProfile({
+    required String onboardingToken,
+    required String document,
+  }) async {
+    try {
+      final response = await ApiClient.post('/auth/google/complete', {
+        'onboardingToken': onboardingToken,
+        'document': document.replaceAll(RegExp(r'\D'), ''),
+      });
+      final decoded = _decodeMap(response.body);
+
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          decoded?['token'] != null) {
+        await _finishAuthentication(decoded!);
+        return {
+          'success': true,
+          'message': 'Cadastro concluído. Bem-vindo ao SISOV!',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': ApiErrorMessages.fromHttp(
+          statusCode: response.statusCode,
+          body: response.body,
+          action: ApiAction.googleLogin,
+        ),
+      };
+    } catch (error) {
+      return {
+        'success': false,
+        'message': ApiErrorMessages.fromException(
+          error,
+          action: ApiAction.googleLogin,
+        ),
+      };
+    }
+  }
+
+  Future<void> _finishAuthentication(Map<dynamic, dynamic> responseData) async {
+    final token = responseData['token']?.toString();
+    if (token == null || token.isEmpty) {
+      throw const FormatException('Token de sessão ausente');
+    }
+
+    final previousUserId = await getCurrentUserId();
+    await _storage.write(key: SecureStore.jwtTokenKey, value: token);
+
+    Map<String, dynamic>? profile;
+    try {
+      final profileResponse = await ApiClient.get('/auth/profile');
+      if (profileResponse.statusCode == 200) {
+        profile = _decodeMap(profileResponse.body);
+      }
+    } catch (_) {
+      // Usa o produtor devolvido no login se o perfil agregado falhar.
+    }
+
+    final producer = responseData['producer'];
+    if (profile == null && producer is Map) {
+      profile = Map<String, dynamic>.from(producer);
+    }
+
+    if (profile != null) {
+      final newUserId = profile['id']?.toString();
+      if (previousUserId != null &&
+          newUserId != null &&
+          previousUserId != newUserId) {
+        await LocalCache.instance.clearAll();
+      }
+      await _saveProfile(profile);
+    }
+  }
+
+  Map<String, dynamic>? _decodeMap(String body) {
+    if (body.trim().isEmpty) return null;
+    final decoded = jsonDecode(body);
+    if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    return null;
   }
 
   Future<Map<String, dynamic>> register(

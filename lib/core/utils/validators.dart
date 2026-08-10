@@ -24,12 +24,40 @@ class AppValidators {
   }
 
   static String? document(String? value) {
-    if (value == null || value.isEmpty) return 'O CPF é obrigatório';
-    // Remove caracteres não numéricos
+    if (value == null || value.isEmpty) return 'O CPF ou CNPJ é obrigatório';
     final cleanedValue = value.replaceAll(RegExp(r'\D'), '');
-    if (cleanedValue.length != 11) return 'O CPF deve conter 11 dígitos';
-    if (!_isValidCPF(cleanedValue)) return 'CPF inválido';
-    return null;
+    if (cleanedValue.length == 11) {
+      if (!_isValidCPF(cleanedValue)) return 'CPF inválido';
+      return null;
+    }
+    if (cleanedValue.length == 14) {
+      if (!_isValidCNPJ(cleanedValue)) return 'CNPJ inválido';
+      return null;
+    }
+    return 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos)';
+  }
+
+  static bool _isValidCNPJ(String cnpj) {
+    if (cnpj.split('').every((digit) => digit == cnpj[0])) return false;
+
+    int calculateDigit(String base, List<int> weights) {
+      var sum = 0;
+      for (var i = 0; i < weights.length; i++) {
+        sum += int.parse(base[i]) * weights[i];
+      }
+      final remainder = sum % 11;
+      return remainder < 2 ? 0 : 11 - remainder;
+    }
+
+    const firstWeights = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const secondWeights = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    final first = calculateDigit(cnpj.substring(0, 12), firstWeights);
+    final second = calculateDigit(
+      '${cnpj.substring(0, 12)}$first',
+      secondWeights,
+    );
+
+    return cnpj.endsWith('$first$second');
   }
 
   static bool _isValidCPF(String cpf) {

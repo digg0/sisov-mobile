@@ -3,6 +3,7 @@ import 'dart:convert';
 /// Contexto da ação para mensagens mais específicas ao usuário.
 enum ApiAction {
   login,
+  googleLogin,
   register,
   createProperty,
   createAnimal,
@@ -36,6 +37,9 @@ class ApiErrorMessages {
         if (action == ApiAction.login) {
           return 'E-mail ou senha incorretos. Verifique e tente novamente.';
         }
+        if (action == ApiAction.googleLogin) {
+          return 'A credencial do Google expirou. Tente entrar novamente.';
+        }
         return 'Sua sessão expirou. Faça login novamente.';
       case 403:
         return 'Você não tem permissão para esta ação.';
@@ -50,6 +54,8 @@ class ApiErrorMessages {
         final fields = _formatValidationDetails(decoded);
         if (fields != null) return fields;
         return 'Alguns campos estão inválidos. Revise e tente novamente.';
+      case 428:
+        return 'Informe seu CPF ou CNPJ para concluir o cadastro.';
       case 429:
         return 'Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo.';
       case 500:
@@ -131,6 +137,30 @@ class ApiErrorMessages {
           'Sua sessão expirou. Faça login novamente.',
       'invalid or expired token.':
           'Sua sessão expirou. Faça login novamente.',
+      'invalid google token.':
+          'A credencial do Google é inválida ou expirou. Tente entrar novamente.',
+      'invalid google id token.':
+          'A credencial do Google é inválida ou expirou. Tente entrar novamente.',
+      'google sign-in is not configured.':
+          'Login Google ainda não está disponível. Use e-mail e senha.',
+      'google authentication is not configured.':
+          'Login Google ainda não está disponível. Use e-mail e senha.',
+      'google email is not verified.':
+          'Sua conta Google precisa ter um e-mail verificado.',
+      'google account must have a verified email address.':
+          'Sua conta Google precisa ter um e-mail verificado.',
+      'profile completion token is invalid or expired.':
+          'O prazo para concluir o cadastro expirou. Entre com o Google novamente.',
+      'invalid or expired google onboarding token.':
+          'O prazo para concluir o cadastro expirou. Entre com o Google novamente.',
+      'profile completion required.':
+          'Informe seu CPF ou CNPJ para concluir o cadastro.',
+      'a producer with this document already exists.':
+          'Este CPF ou CNPJ já está cadastrado no SISOV.',
+      'this google account or email is already registered.':
+          'Esta conta Google ou e-mail já está cadastrado no SISOV.',
+      'this email is already linked to another google account.':
+          'Este e-mail já está vinculado a outra conta Google.',
       'producer not found.':
           'Produtor não encontrado.',
       'producer not found':
@@ -212,6 +242,7 @@ class ApiErrorMessages {
         return 'Propriedade não encontrada.';
       case ApiAction.login:
       case ApiAction.register:
+      case ApiAction.googleLogin:
         return 'Conta não encontrada. Verifique os dados ou cadastre-se.';
       case ApiAction.generic:
         return 'Registro não encontrado.';
@@ -222,6 +253,8 @@ class ApiErrorMessages {
     switch (action) {
       case ApiAction.login:
         return 'Não foi possível entrar. Tente novamente.';
+      case ApiAction.googleLogin:
+        return 'Não foi possível entrar com o Google. Tente novamente.';
       case ApiAction.register:
         return 'Não foi possível concluir o cadastro. Tente novamente.';
       case ApiAction.createProperty:

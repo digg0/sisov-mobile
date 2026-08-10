@@ -1,4 +1,4 @@
-package com.example.sisov_mobile
+package br.com.sisov.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -11,6 +11,7 @@ import 'features/auth/views/auth_gate.dart';
 import 'features/auth/views/login_screen.dart';
 import 'features/auth/views/register_screen.dart';
 import 'features/auth/views/home_screen.dart';
+import 'features/auth/services/google_sign_in_service.dart';
 import 'features/properties/views/properties_create_screen.dart';
 import 'features/properties/views/properties_list_screen.dart';
 
@@ -21,6 +22,13 @@ Future<void> main() async {
 
   // Chrome/Web: sqflite precisa do factory WASM antes de abrir o banco.
   await initDatabaseFactory();
+
+  try {
+    await GoogleSignInService.instance.initialize();
+  } catch (error) {
+    // Login por e-mail continua disponível se a configuração Google falhar.
+    debugPrint('GoogleSignIn.initialize falhou: $error');
+  }
 
   // Sessão inválida (401): limpa dados locais e força novo login.
   ApiClient.onUnauthorized = () async {

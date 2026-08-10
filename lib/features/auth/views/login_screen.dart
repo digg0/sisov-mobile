@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../../core/session/session_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../services/auth_service.dart';
+import '../services/google_sign_in_service.dart';
+import '../widgets/google_sign_in_button.dart';
+import 'complete_google_profile_screen.dart';
 import '../../../core/utils/validators.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -20,8 +25,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscureText = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   final _authService = AuthService();
+  final _googleSignIn = GoogleSignInService.instance;
+  StreamSubscription<GoogleIdentityResult>? _googleResultsSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _googleResultsSubscription = _googleSignIn.webResults.listen(
+      _processGoogleIdentity,
+    );
+  }
 
   void _fazerLogin() async {
     FocusScope.of(context).unfocus();
@@ -63,8 +79,85 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _fazerLoginGoogle() async {
+    if (_isGoogleLoading) return;
+    setState(() => _isGoogleLoading = true);
+    final identity = await _googleSignIn.authenticate();
+    await _processGoogleIdentity(identity);
+  }
+
+  Future<void> _processGoogleIdentity(GoogleIdentityResult identity) async {
+    if (!mounted) return;
+    setState(() => _isGoogleLoading = true);
+
+    if (!identity.isSuccess) {
+      setState(() => _isGoogleLoading = false);
+      _showError(
+        identity.errorMessage ??
+            'Não foi possível entrar com o Google. Tente novamente.',
+      );
+      return;
+    }
+
+    final result = await _authService.loginWithGoogle(identity.idToken!);
+    if (!mounted) return;
+    setState(() => _isGoogleLoading = false);
+
+    if (result['success'] == true) {
+      await SessionService.instance.warmCache();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result['message'] ?? 'Login com Google realizado com sucesso.',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pushReplacementNamed(context, '/home');
+      return;
+    }
+
+    if (result['requiresProfileCompletion'] == true &&
+        result['onboardingToken'] is String) {
+      final rawProfile = result['profile'];
+      final profile = rawProfile is Map
+          ? Map<String, dynamic>.from(rawProfile)
+          : null;
+      final completed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => CompleteGoogleProfileScreen(
+            onboardingToken: result['onboardingToken'] as String,
+            googleProfile: profile,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      if (completed == true) {
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+      }
+      return;
+    }
+
+    _showError(
+      result['message'] ??
+          'Não foi possível entrar com o Google. Tente novamente.',
+    );
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _googleResultsSubscription?.cancel();
     _emailController.dispose();
     _senhaController.dispose();
     _emailFocus.dispose();
@@ -221,6 +314,48 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                             ),
                           ),
+                          const SizedBox(height: 24),
+                          const Row(
+                            children: [
+                              Expanded(child: Divider()),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 14),
+                                child: Text(
+                                  'ou',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider()),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          if (_isGoogleLoading)
+                            const SizedBox(
+                              height: 54,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            )
+                          else
+                            buildGoogleSignInButton(
+                              onPressed: _fazerLoginGoogle,
+                              enabled: _googleSignIn.isConfigured,
+                            ),
+                          if (!_googleSignIn.isConfigured) ...[
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Login Google aguardando configuração. Use e-mail e senha.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 24),
                           Center(
                             child: Column(

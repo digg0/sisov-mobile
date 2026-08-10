@@ -1,5 +1,6 @@
 import '../../features/animals/services/animal_service.dart';
 import '../../features/auth/services/auth_service.dart';
+import '../../features/auth/services/google_sign_in_service.dart';
 import '../../features/properties/services/property_service.dart';
 import '../db/local_cache.dart';
 import '../sync/sync_service.dart';
@@ -28,6 +29,7 @@ class SessionService {
     SyncService.instance.pause();
     await LocalCache.instance.clearAll();
     await _auth.clearSession();
+    await GoogleSignInService.instance.signOut();
     SyncService.instance.resume();
     await SyncService.instance.refreshPendingCount();
   }
