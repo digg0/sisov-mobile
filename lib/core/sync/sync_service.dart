@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
@@ -30,6 +31,11 @@ class SyncService {
 
   /// Quantidade de operações ainda não sincronizadas (para exibir na UI).
   final ValueNotifier<int> pendingCount = ValueNotifier<int>(0);
+  final ValueNotifier<bool> cellularSyncEnabled = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> syncing = ValueNotifier<bool>(false);
+  final ValueNotifier<DateTime?> lastSyncAt = ValueNotifier<DateTime?>(null);
+
+  static const _cellularSyncPreference = 'sync_using_mobile_data';
 
   StreamSubscription<List<ConnectivityResult>>? _connSub;
   Timer? _periodicTimer;
@@ -46,6 +52,9 @@ class SyncService {
     _initialized = true;
 
     await LocalDatabase.instance.database;
+    final preferences = await SharedPreferences.getInstance();
+    cellularSyncEnabled.value =
+        preferences.getBool(_cellularSyncPreference) ?? true;
     await _refreshPendingCount();
 
     _connSub = _connectivity.onConnectivityChanged.listen((results) {
@@ -73,6 +82,15 @@ class SyncService {
 
   Future<void> refreshPendingCount() => _refreshPendingCount();
 
+  Future<void> setCellularSyncEnabled(bool enabled) async {
+    cellularSyncEnabled.value = enabled;
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(_cellularSyncPreference, enabled);
+    if (enabled) unawaited(flush());
+  }
+
+  Future<bool> checkConnection() => _canReachApi();
+
   bool _isOffline(List<ConnectivityResult> results) {
     return results.isEmpty ||
         results.every((r) => r == ConnectivityResult.none);
@@ -80,16 +98,22 @@ class SyncService {
 
   Future<bool> _hasLink() async {
     final results = await _connectivity.checkConnectivity();
-    return !_isOffline(results);
+    if (_isOffline(results)) return false;
+    if (cellularSyncEnabled.value) return true;
+    return results.any(
+      (result) =>
+          result != ConnectivityResult.mobile &&
+          result != ConnectivityResult.none,
+    );
   }
 
   /// Verifica se a API responde de fato (não só se há Wi‑Fi/dados).
   Future<bool> _canReachApi() async {
     if (!await _hasLink()) return false;
     try {
-      final response = await ApiClient.get('/health').timeout(
-        const Duration(seconds: 5),
-      );
+      final response = await ApiClient.get(
+        '/health',
+      ).timeout(const Duration(seconds: 5));
       return response.statusCode >= 200 && response.statusCode < 500;
     } catch (_) {
       return false;
@@ -147,8 +171,7 @@ class SyncService {
     }
 
     // Evita enfileirar a mesma transferência várias vezes (toques repetidos).
-    if (endpoint.contains('/transfer') &&
-        await _hasPendingEndpoint(endpoint)) {
+    if (endpoint.contains('/transfer') && await _hasPendingEndpoint(endpoint)) {
       return {
         'success': true,
         'queued': true,
@@ -215,6 +238,7 @@ class SyncService {
     if (!await _canReachApi()) return;
 
     _isSyncing = true;
+    syncing.value = true;
     try {
       final db = await LocalDatabase.instance.database;
 
@@ -279,6 +303,8 @@ class SyncService {
       }
     } finally {
       _isSyncing = false;
+      syncing.value = false;
+      lastSyncAt.value = DateTime.now();
       await _refreshPendingCount();
     }
   }
@@ -303,8 +329,7 @@ class SyncService {
         serverData: data,
       );
     } else if (entityType == 'animal') {
-      final serverId =
-          data['sisovId']?.toString() ?? data['id']?.toString();
+      final serverId = data['sisovId']?.toString() ?? data['id']?.toString();
       if (serverId == null || serverId.isEmpty) return;
       await _cache.promoteAnimal(
         localId: localEntityId,
@@ -349,10 +374,7 @@ class SyncService {
   ) async {
     await db.update(
       LocalDatabase.tableSyncQueue,
-      {
-        'retry_count': (row['retry_count'] as int) + 1,
-        'last_error': error,
-      },
+      {'retry_count': (row['retry_count'] as int) + 1, 'last_error': error},
       where: 'id = ?',
       whereArgs: [id],
     );

@@ -14,6 +14,7 @@ import 'features/auth/views/home_screen.dart';
 import 'features/auth/services/google_sign_in_service.dart';
 import 'features/properties/views/properties_create_screen.dart';
 import 'features/properties/views/properties_list_screen.dart';
+import 'features/settings/views/settings_screen.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -66,6 +67,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/properties': (context) => const PropertiesListScreen(),
         '/properties/add': (context) => const PropertyCreateScreen(),
+        '/settings': (context) => const SettingsScreen(),
         '/select-property': (context) => const SelectPropertyForAnimalScreen(),
         '/search-animal': (context) =>
             const AnimalSearchScreen(isTransferMode: false),

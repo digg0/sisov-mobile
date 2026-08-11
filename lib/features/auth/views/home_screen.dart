@@ -792,7 +792,10 @@ class _HomeScreenState extends State<HomeScreen> {
             'Minhas Propriedades',
             () => Navigator.pushNamed(context, '/properties'),
           ),
-          _drawerItem(Icons.settings_outlined, 'Configurações', () {}),
+          _drawerItem(Icons.settings_outlined, 'Configurações', () {
+            Navigator.pop(context);
+            Navigator.pushNamed(context, '/settings');
+          }),
 
           const Spacer(), // Empurra o botão de sair para o final
 
