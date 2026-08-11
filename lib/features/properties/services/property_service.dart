@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../../../core/api/api_client.dart';
 import '../../../core/db/local_cache.dart';
 import '../../../core/sync/sync_service.dart';
+import '../../../core/utils/api_error_messages.dart';
 import '../models/property_model.dart';
 
 class PropertyService {
@@ -46,9 +47,7 @@ class PropertyService {
     List<Map<String, dynamic>> local,
   ) {
     final remoteIds = remote.map((e) => e['id']?.toString()).toSet();
-    final result = remote
-        .map((json) => PropertyModel.fromJson(json))
-        .toList();
+    final result = remote.map((json) => PropertyModel.fromJson(json)).toList();
 
     for (final item in local) {
       final id = item['id']?.toString() ?? '';
@@ -86,11 +85,7 @@ class PropertyService {
 
     final result = await SyncService.instance.submitWrite(
       endpoint: '/properties',
-      payload: {
-        'farmName': farmName,
-        'city': city,
-        'state': state,
-      },
+      payload: {'farmName': farmName, 'city': city, 'state': state},
       label: 'Cadastro de propriedade',
       entityType: 'property',
       localEntityId: localId,
@@ -100,9 +95,76 @@ class PropertyService {
       await _cache.deleteProperty(localId);
     }
 
-    return {
-      ...result,
-      'localEntityId': localId,
-    };
+    return {...result, 'localEntityId': localId};
+  }
+
+  Future<Map<String, dynamic>> updatePropertyName({
+    required PropertyModel property,
+    required String farmName,
+  }) async {
+    if (property.id.startsWith('local_')) {
+      return {
+        'success': false,
+        'message':
+            'Aguarde a sincronização da propriedade antes de editar o nome.',
+      };
+    }
+
+    try {
+      final response = await ApiClient.patch('/properties/${property.id}', {
+        'farmName': farmName,
+      });
+      if (response.statusCode == 200) {
+        await _cache.upsertProperty({
+          'id': property.id,
+          'farmName': farmName,
+          'city': property.city,
+          'state': property.state,
+          'syncStatus': 'SYNCED',
+        });
+        return {'success': true};
+      }
+      return {
+        'success': false,
+        'message': ApiErrorMessages.fromHttp(
+          statusCode: response.statusCode,
+          body: response.body,
+        ),
+      };
+    } catch (error) {
+      return {
+        'success': false,
+        'message': ApiErrorMessages.fromException(error),
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteProperty(PropertyModel property) async {
+    if (property.id.startsWith('local_')) {
+      return {
+        'success': false,
+        'message': 'Aguarde a sincronização da propriedade antes de excluí-la.',
+      };
+    }
+
+    try {
+      final response = await ApiClient.delete('/properties/${property.id}');
+      if (response.statusCode == 204) {
+        await _cache.deleteProperty(property.id);
+        return {'success': true};
+      }
+      return {
+        'success': false,
+        'message': ApiErrorMessages.fromHttp(
+          statusCode: response.statusCode,
+          body: response.body,
+        ),
+      };
+    } catch (error) {
+      return {
+        'success': false,
+        'message': ApiErrorMessages.fromException(error),
+      };
+    }
   }
 }

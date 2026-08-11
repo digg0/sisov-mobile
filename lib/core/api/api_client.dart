@@ -18,8 +18,7 @@ class ApiClient {
       'Accept': 'application/json',
     };
 
-    final token =
-        await SecureStore.instance.read(key: SecureStore.jwtTokenKey);
+    final token = await SecureStore.instance.read(key: SecureStore.jwtTokenKey);
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
@@ -76,8 +75,30 @@ class ApiClient {
     final headers = await _getHeaders();
     final url = Uri.parse('$baseUrl$endpoint');
 
-    final response = await http.get(
-      url,
+    final response = await http.get(url, headers: headers);
+    await _handleUnauthorized(endpoint, response);
+    return response;
+  }
+
+  static Future<http.Response> patch(
+    String endpoint,
+    Map<String, dynamic> body, {
+    String? requestId,
+  }) async {
+    final headers = await _getHeaders(requestId: requestId);
+    final response = await http.patch(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+    await _handleUnauthorized(endpoint, response);
+    return response;
+  }
+
+  static Future<http.Response> delete(String endpoint) async {
+    final headers = await _getHeaders();
+    final response = await http.delete(
+      Uri.parse('$baseUrl$endpoint'),
       headers: headers,
     );
     await _handleUnauthorized(endpoint, response);
