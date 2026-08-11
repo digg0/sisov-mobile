@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 
 import 'local_database.dart';
@@ -28,16 +30,12 @@ class LocalCache {
     required String entityType,
   }) async {
     final db = await _db;
-    await db.insert(
-      LocalDatabase.tableIdMap,
-      {
-        'local_id': localId,
-        'server_id': serverId,
-        'entity_type': entityType,
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert(LocalDatabase.tableIdMap, {
+      'local_id': localId,
+      'server_id': serverId,
+      'entity_type': entityType,
+      'created_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<String?> resolveServerId(String localId) async {
@@ -72,18 +70,33 @@ class LocalCache {
   Future<Map<String, dynamic>?> rewriteIdsInMap(
     Map<String, dynamic> payload,
   ) async {
-    final rewritten = <String, dynamic>{};
-    for (final entry in payload.entries) {
-      final value = entry.value;
-      if (value is String && value.startsWith('local_')) {
-        final serverId = await resolveServerId(value);
-        if (serverId == null) return null;
-        rewritten[entry.key] = serverId;
-      } else {
-        rewritten[entry.key] = value;
-      }
+    final result = await _rewriteValue(payload);
+    return result is Map<String, dynamic> ? result : null;
+  }
+
+  Future<dynamic> _rewriteValue(dynamic value) async {
+    if (value is String && value.startsWith('local_')) {
+      return resolveServerId(value);
     }
-    return rewritten;
+    if (value is Map) {
+      final rewritten = <String, dynamic>{};
+      for (final entry in value.entries) {
+        final item = await _rewriteValue(entry.value);
+        if (item == null && entry.value != null) return null;
+        rewritten[entry.key.toString()] = item;
+      }
+      return rewritten;
+    }
+    if (value is List) {
+      final rewritten = <dynamic>[];
+      for (final entry in value) {
+        final item = await _rewriteValue(entry);
+        if (item == null && entry != null) return null;
+        rewritten.add(item);
+      }
+      return rewritten;
+    }
+    return value;
   }
 
   // ─── Properties ────────────────────────────────────────────────────────
@@ -91,18 +104,14 @@ class LocalCache {
   Future<void> upsertProperty(Map<String, dynamic> property) async {
     final db = await _db;
     final now = DateTime.now().toIso8601String();
-    await db.insert(
-      LocalDatabase.tableProperties,
-      {
-        'id': property['id']?.toString() ?? '',
-        'farm_name': property['farmName']?.toString() ?? '',
-        'city': property['city']?.toString() ?? '',
-        'state': property['state']?.toString() ?? '',
-        'sync_status': property['syncStatus']?.toString() ?? 'SYNCED',
-        'updated_at': now,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert(LocalDatabase.tableProperties, {
+      'id': property['id']?.toString() ?? '',
+      'farm_name': property['farmName']?.toString() ?? '',
+      'city': property['city']?.toString() ?? '',
+      'state': property['state']?.toString() ?? '',
+      'sync_status': property['syncStatus']?.toString() ?? 'SYNCED',
+      'updated_at': now,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> replaceProperties(List<Map<String, dynamic>> properties) async {
@@ -193,16 +202,12 @@ class LocalCache {
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
       }
-      await txn.insert(
-        LocalDatabase.tableIdMap,
-        {
-          'local_id': localId,
-          'server_id': serverId,
-          'entity_type': 'property',
-          'created_at': DateTime.now().toIso8601String(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      await txn.insert(LocalDatabase.tableIdMap, {
+        'local_id': localId,
+        'server_id': serverId,
+        'entity_type': 'property',
+        'created_at': DateTime.now().toIso8601String(),
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
       // Atualiza property_id dos animais locais que ainda apontam para o ID local.
       await txn.update(
         LocalDatabase.tableAnimals,
@@ -221,26 +226,30 @@ class LocalCache {
         animal['sisovId']?.toString() ?? animal['id']?.toString() ?? '';
     if (sisovId.isEmpty) return;
 
-    await db.insert(
-      LocalDatabase.tableAnimals,
-      {
-        'sisov_id': sisovId,
-        'tag_id': animal['tagId']?.toString(),
-        'property_id': animal['propertyId']?.toString() ??
-            (animal['property'] is Map
-                ? animal['property']['id']?.toString()
-                : null) ??
-            '',
-        'breed': animal['breed']?.toString() ?? '',
-        'sex': animal['sex']?.toString() ?? '',
-        'birth_date': animal['birthDate']?.toString() ?? '',
-        'birth_city': animal['birthCity']?.toString() ?? '',
-        'status': animal['status']?.toString() ?? 'ACTIVE',
-        'sync_status': animal['syncStatus']?.toString() ?? 'SYNCED',
-        'updated_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert(LocalDatabase.tableAnimals, {
+      'sisov_id': sisovId,
+      'tag_id': animal['tagId']?.toString(),
+      'property_id':
+          animal['propertyId']?.toString() ??
+          (animal['property'] is Map
+              ? animal['property']['id']?.toString()
+              : null) ??
+          '',
+      'breed': animal['breed']?.toString() ?? '',
+      'sex': animal['sex']?.toString() ?? '',
+      'birth_date': animal['birthDate']?.toString() ?? '',
+      'birth_city': animal['birthCity']?.toString() ?? '',
+      'coat_color': animal['coatColor']?.toString(),
+      'birth_weight': _asDouble(animal['birthWeight']),
+      'weaning_weight': _asDouble(animal['weaningWeight']),
+      'notes': animal['notes']?.toString(),
+      'coverage_date': animal['coverageDate']?.toString(),
+      'lambing_date': animal['lambingDate']?.toString(),
+      'offspring_ids_json': jsonEncode(animal['offspringIds'] ?? const []),
+      'status': animal['status']?.toString() ?? 'ACTIVE',
+      'sync_status': animal['syncStatus']?.toString() ?? 'SYNCED',
+      'updated_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> replaceAnimals(List<Map<String, dynamic>> animals) async {
@@ -263,26 +272,30 @@ class LocalCache {
         final sisovId =
             animal['sisovId']?.toString() ?? animal['id']?.toString() ?? '';
         if (sisovId.isEmpty) continue;
-        await txn.insert(
-          LocalDatabase.tableAnimals,
-          {
-            'sisov_id': sisovId,
-            'tag_id': animal['tagId']?.toString(),
-            'property_id': animal['propertyId']?.toString() ??
-                (animal['property'] is Map
-                    ? animal['property']['id']?.toString()
-                    : null) ??
-                '',
-            'breed': animal['breed']?.toString() ?? '',
-            'sex': animal['sex']?.toString() ?? '',
-            'birth_date': animal['birthDate']?.toString() ?? '',
-            'birth_city': animal['birthCity']?.toString() ?? '',
-            'status': animal['status']?.toString() ?? 'ACTIVE',
-            'sync_status': 'SYNCED',
-            'updated_at': now,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        await txn.insert(LocalDatabase.tableAnimals, {
+          'sisov_id': sisovId,
+          'tag_id': animal['tagId']?.toString(),
+          'property_id':
+              animal['propertyId']?.toString() ??
+              (animal['property'] is Map
+                  ? animal['property']['id']?.toString()
+                  : null) ??
+              '',
+          'breed': animal['breed']?.toString() ?? '',
+          'sex': animal['sex']?.toString() ?? '',
+          'birth_date': animal['birthDate']?.toString() ?? '',
+          'birth_city': animal['birthCity']?.toString() ?? '',
+          'coat_color': animal['coatColor']?.toString(),
+          'birth_weight': _asDouble(animal['birthWeight']),
+          'weaning_weight': _asDouble(animal['weaningWeight']),
+          'notes': animal['notes']?.toString(),
+          'coverage_date': animal['coverageDate']?.toString(),
+          'lambing_date': animal['lambingDate']?.toString(),
+          'offspring_ids_json': jsonEncode(animal['offspringIds'] ?? const []),
+          'status': animal['status']?.toString() ?? 'ACTIVE',
+          'sync_status': 'SYNCED',
+          'updated_at': now,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
     });
   }
@@ -328,36 +341,42 @@ class LocalCache {
           where: 'sisov_id = ?',
           whereArgs: [localId],
         );
-        await txn.insert(
-          LocalDatabase.tableAnimals,
-          {
-            'sisov_id': serverId,
-            'tag_id': serverData?['tagId']?.toString() ?? row['tag_id'],
-            'property_id': serverData?['propertyId']?.toString() ??
-                row['property_id'],
-            'breed': serverData?['breed']?.toString() ?? row['breed'],
-            'sex': serverData?['sex']?.toString() ?? row['sex'],
-            'birth_date':
-                serverData?['birthDate']?.toString() ?? row['birth_date'],
-            'birth_city':
-                serverData?['birthCity']?.toString() ?? row['birth_city'],
-            'status': serverData?['status']?.toString() ?? row['status'],
-            'sync_status': 'SYNCED',
-            'updated_at': DateTime.now().toIso8601String(),
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        await txn.insert(LocalDatabase.tableAnimals, {
+          'sisov_id': serverId,
+          'tag_id': serverData?['tagId']?.toString() ?? row['tag_id'],
+          'property_id':
+              serverData?['propertyId']?.toString() ?? row['property_id'],
+          'breed': serverData?['breed']?.toString() ?? row['breed'],
+          'sex': serverData?['sex']?.toString() ?? row['sex'],
+          'birth_date':
+              serverData?['birthDate']?.toString() ?? row['birth_date'],
+          'birth_city':
+              serverData?['birthCity']?.toString() ?? row['birth_city'],
+          'coat_color':
+              serverData?['coatColor']?.toString() ?? row['coat_color'],
+          'birth_weight':
+              _asDouble(serverData?['birthWeight']) ?? row['birth_weight'],
+          'weaning_weight':
+              _asDouble(serverData?['weaningWeight']) ?? row['weaning_weight'],
+          'notes': serverData?['notes']?.toString() ?? row['notes'],
+          'coverage_date':
+              serverData?['coverageDate']?.toString() ?? row['coverage_date'],
+          'lambing_date':
+              serverData?['lambingDate']?.toString() ?? row['lambing_date'],
+          'offspring_ids_json': serverData?['offspringIds'] != null
+              ? jsonEncode(serverData!['offspringIds'])
+              : row['offspring_ids_json'],
+          'status': serverData?['status']?.toString() ?? row['status'],
+          'sync_status': 'SYNCED',
+          'updated_at': DateTime.now().toIso8601String(),
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
-      await txn.insert(
-        LocalDatabase.tableIdMap,
-        {
-          'local_id': localId,
-          'server_id': serverId,
-          'entity_type': 'animal',
-          'created_at': DateTime.now().toIso8601String(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      await txn.insert(LocalDatabase.tableIdMap, {
+        'local_id': localId,
+        'server_id': serverId,
+        'entity_type': 'animal',
+        'created_at': DateTime.now().toIso8601String(),
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     });
   }
 
@@ -365,10 +384,7 @@ class LocalCache {
     final db = await _db;
     await db.update(
       LocalDatabase.tableAnimals,
-      {
-        'status': status,
-        'updated_at': DateTime.now().toIso8601String(),
-      },
+      {'status': status, 'updated_at': DateTime.now().toIso8601String()},
       where: 'sisov_id = ?',
       whereArgs: [sisovId],
     );
@@ -393,14 +409,39 @@ class LocalCache {
   }
 
   Map<String, dynamic> _animalRowToMap(Map<String, Object?> r) => {
-        'sisovId': r['sisov_id'],
-        'tagId': r['tag_id'],
-        'propertyId': r['property_id'],
-        'breed': r['breed'],
-        'sex': r['sex'],
-        'birthDate': r['birth_date'],
-        'birthCity': r['birth_city'],
-        'status': r['status'],
-        'syncStatus': r['sync_status'],
-      };
+    'sisovId': r['sisov_id'],
+    'tagId': r['tag_id'],
+    'propertyId': r['property_id'],
+    'breed': r['breed'],
+    'sex': r['sex'],
+    'birthDate': r['birth_date'],
+    'birthCity': r['birth_city'],
+    'coatColor': r['coat_color'],
+    'birthWeight': r['birth_weight'],
+    'weaningWeight': r['weaning_weight'],
+    'notes': r['notes'],
+    'coverageDate': r['coverage_date'],
+    'lambingDate': r['lambing_date'],
+    'offspringIds': _decodeStringList(r['offspring_ids_json']),
+    'status': r['status'],
+    'syncStatus': r['sync_status'],
+  };
+
+  static double? _asDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
+  }
+
+  static List<String> _decodeStringList(Object? value) {
+    if (value == null || value.toString().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(value.toString());
+      if (decoded is List) {
+        return decoded.map((item) => item.toString()).toList();
+      }
+    } catch (_) {
+      // Bancos legados podem conter valor vazio ou inválido.
+    }
+    return const [];
+  }
 }

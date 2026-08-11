@@ -2,19 +2,23 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../models/slaughter_registration_model.dart';
 import '../services/animal_service.dart';
 import 'animal_details_screen.dart';
 import 'qr_scanner_screen.dart';
+import 'slaughter_registration_screen.dart';
 
 class AnimalSearchScreen extends StatefulWidget {
   const AnimalSearchScreen({
     super.key,
     required this.isTransferMode,
     this.showSlaughtered = false,
+    this.isSlaughterMode = false,
   });
 
   final bool isTransferMode;
   final bool showSlaughtered;
+  final bool isSlaughterMode;
 
   @override
   State<AnimalSearchScreen> createState() => _AnimalSearchScreenState();
@@ -28,7 +32,7 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
   List<dynamic> _allAnimals = [];
   List<dynamic> _filteredAnimals = [];
   String? _errorMessage;
-
+  final Set<String> _selectedAnimalIds = {};
 
   @override
   void initState() {
@@ -47,7 +51,7 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
       final loadedAnimals = data.where((animal) {
         final status = animal['status']?.toString().toUpperCase() ?? '';
         if (widget.showSlaughtered) {
-          return status == 'SLAUGHTERED';
+          return status == 'SLAUGHTERED' || status == 'SLAUGHTER_PENDING';
         }
         return status == 'ACTIVE';
       }).toList();
@@ -96,11 +100,39 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
     return null;
   }
 
-  Future<void> _iniciarTransferenciaComDestino(Map<String, dynamic> animal) async {
+  Future<void> _openSlaughterBatch() async {
+    final selected = _allAnimals
+        .where((animal) {
+          final id =
+              animal['sisovId']?.toString() ?? animal['id']?.toString() ?? '';
+          return _selectedAnimalIds.contains(id);
+        })
+        .map(
+          (animal) =>
+              SlaughterAnimal.fromMap(Map<String, dynamic>.from(animal as Map)),
+        )
+        .toList();
+    if (selected.isEmpty) return;
+    final completed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SlaughterRegistrationScreen(animals: selected),
+      ),
+    );
+    if (!mounted) return;
+    if (completed == true) Navigator.pop(context, true);
+  }
+
+  Future<void> _iniciarTransferenciaComDestino(
+    Map<String, dynamic> animal,
+  ) async {
     final animalId = await _getAnimalId(animal);
     if (animalId == null || animalId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro: ID do animal não encontrado'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Erro: ID do animal não encontrado'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -126,17 +158,27 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
 
     if (destinationData == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('QR inválido para transferência'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('QR inválido para transferência'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
-    final destinationProducerId = destinationData['producerId']?.toString() ?? '';
-    final destinationPropertyId = destinationData['propertyId']?.toString() ?? '';
+    final destinationProducerId =
+        destinationData['producerId']?.toString() ?? '';
+    final destinationPropertyId =
+        destinationData['propertyId']?.toString() ?? '';
 
     if (destinationProducerId.isEmpty || destinationPropertyId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('QR de destino não contém produtor ou propriedade válidos'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text(
+            'QR de destino não contém produtor ou propriedade válidos',
+          ),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -154,9 +196,12 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
         final queued = success['queued'] == true;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(queued
-                ? (success['message'] ?? 'Transferência salva no aparelho. Será enviada quando houver internet.')
-                : '✓ Transferência concluída com sucesso!'),
+            content: Text(
+              queued
+                  ? (success['message'] ??
+                        'Transferência salva no aparelho. Será enviada quando houver internet.')
+                  : '✓ Transferência concluída com sucesso!',
+            ),
             backgroundColor: queued ? Colors.orange : Colors.green,
           ),
         );
@@ -189,15 +234,33 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
       appBar: AppBar(
         title: Text(
           widget.showSlaughtered
-              ? 'Finalizados / Abatidos'
+              ? 'Abatidos / Pendentes'
+              : widget.isSlaughterMode
+              ? 'Selecionar animais'
               : widget.isTransferMode
-                  ? 'Transferência'
-                  : 'Meu Rebanho',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ? 'Transferência'
+              : 'Meu Rebanho',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: AppColors.primary,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          if (widget.isSlaughterMode && _selectedAnimalIds.isNotEmpty)
+            TextButton(
+              onPressed: _openSlaughterBatch,
+              child: Text(
+                'Continuar (${_selectedAnimalIds.length})',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -213,13 +276,16 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
             ),
             child: TextField(
               controller: _searchController,
-              onChanged: _filterAnimals, 
+              onChanged: _filterAnimals,
               decoration: InputDecoration(
                 hintText: 'Buscar por coleira ou raça...',
                 hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.15),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
                 prefixIcon: const Icon(Icons.search, color: Colors.white),
               ),
               style: const TextStyle(color: Colors.white),
@@ -228,9 +294,11 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
 
           // Área de Resultados (Lista de todos os animais)
           Expanded(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-              : _buildResultArea(),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : _buildResultArea(),
           ),
         ],
       ),
@@ -245,8 +313,18 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
           children: [
             const Icon(Icons.error_outline, size: 80, color: Colors.black26),
             const SizedBox(height: 16),
-            Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold)),
-            TextButton(onPressed: _loadAnimals, child: const Text("Tentar novamente"))
+            Text(
+              _errorMessage!,
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextButton(
+              onPressed: _loadAnimals,
+              child: const Text("Tentar novamente"),
+            ),
           ],
         ),
       );
@@ -268,7 +346,10 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
       itemBuilder: (context, index) {
         final animal = _filteredAnimals[index];
         final isMale = animal['sex'] == 'MALE';
-        
+        final id =
+            animal['sisovId']?.toString() ?? animal['id']?.toString() ?? '';
+        final selected = _selectedAnimalIds.contains(id);
+
         return Card(
           elevation: 0,
           margin: const EdgeInsets.only(bottom: 12),
@@ -277,30 +358,63 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
             side: BorderSide(color: Colors.grey.shade200),
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: CircleAvatar(
-              backgroundColor: isMale ? Colors.blue.withOpacity(0.1) : Colors.pink.withOpacity(0.1),
-              child: Icon(isMale ? Icons.male : Icons.female, color: isMale ? Colors.blue : Colors.pink),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
             ),
+            leading: widget.isSlaughterMode
+                ? Checkbox(
+                    value: selected,
+                    onChanged: (_) => setState(() {
+                      selected
+                          ? _selectedAnimalIds.remove(id)
+                          : _selectedAnimalIds.add(id);
+                    }),
+                  )
+                : CircleAvatar(
+                    backgroundColor: isMale
+                        ? Colors.blue.withOpacity(0.1)
+                        : Colors.pink.withOpacity(0.1),
+                    child: Icon(
+                      isMale ? Icons.male : Icons.female,
+                      color: isMale ? Colors.blue : Colors.pink,
+                    ),
+                  ),
             title: Text(
-              'Coleira: ${animal['tagId'] ?? 'N/A'}', 
-              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)
+              'Coleira: ${animal['tagId'] ?? 'N/A'}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
             subtitle: Text(
-              animal['syncStatus'] == 'PENDING'
+              widget.showSlaughtered &&
+                      animal['status']?.toString() == 'SLAUGHTER_PENDING'
+                  ? '${animal['breed'] ?? 'Raça não informada'} · Validação pendente'
+                  : animal['syncStatus'] == 'PENDING'
                   ? '${animal['breed'] ?? 'Raça não informada'} · Aguardando envio'
                   : (animal['breed'] ?? 'Raça não informada'),
             ),
-            trailing: animal['syncStatus'] == 'PENDING'
+            trailing: widget.isSlaughterMode
+                ? null
+                : animal['syncStatus'] == 'PENDING'
                 ? const Icon(Icons.cloud_upload_outlined, color: Colors.orange)
                 : const Icon(Icons.chevron_right, color: AppColors.textMuted),
             onTap: () {
-              if (widget.isTransferMode) {
+              if (widget.isSlaughterMode) {
+                setState(() {
+                  selected
+                      ? _selectedAnimalIds.remove(id)
+                      : _selectedAnimalIds.add(id);
+                });
+              } else if (widget.isTransferMode) {
                 _iniciarTransferenciaComDestino(animal);
               } else {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => AnimalDetailsScreen(animal: animal)),
+                  MaterialPageRoute(
+                    builder: (_) => AnimalDetailsScreen(animal: animal),
+                  ),
                 );
               }
             },

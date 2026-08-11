@@ -8,6 +8,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/image_exporter.dart';
+import '../models/slaughter_registration_model.dart';
 import '../services/animal_service.dart';
 import 'animal_history_screen.dart';
 import 'animal_management_event_screen.dart';
@@ -37,6 +38,7 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
   static const String statusActive = 'ACTIVE';
 
   static const String statusSlaughtered = 'SLAUGHTERED';
+  static const String statusSlaughterPending = 'SLAUGHTER_PENDING';
 
   @override
   Widget build(BuildContext context) {
@@ -48,8 +50,11 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
     final bool canManage = isActive && !widget.readOnly;
 
     final bool isSlaughtered = animal['status'] == statusSlaughtered;
+    final bool isSlaughterPending = animal['status'] == statusSlaughterPending;
 
-    final Color statusCor = isActive ? Colors.green : Colors.red;
+    final Color statusCor = isActive
+        ? Colors.green
+        : (isSlaughterPending ? Colors.orange : Colors.red);
 
     String dataNasc = animal['birthDate'] ?? '';
 
@@ -113,7 +118,11 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
               ),
 
               child: Text(
-                isActive ? '🟢 ATIVO NA PROPRIEDADE' : '🔴 ABATIDO/INATIVO',
+                isActive
+                    ? '🟢 ATIVO NA PROPRIEDADE'
+                    : isSlaughterPending
+                    ? '🟠 ABATE PENDENTE DE VALIDAÇÃO'
+                    : '🔴 ABATIDO/INATIVO',
 
                 style: TextStyle(
                   color: statusCor,
@@ -138,8 +147,8 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
                     widget.readOnly
                         ? 'Consulta de rastreabilidade'
                         : (isSlaughtered
-                            ? 'QR Code de Rastreabilidade'
-                            : 'QR Code de Manejo'),
+                              ? 'QR Code de Rastreabilidade'
+                              : 'QR Code de Manejo'),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -210,7 +219,8 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
                                     backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 8),
+                                      horizontal: 8,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14),
                                     ),
@@ -231,7 +241,8 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
                                             maxLines: 1,
                                             softWrap: false,
                                             style: TextStyle(
-                                                fontWeight: FontWeight.w600),
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                 ),
@@ -249,7 +260,8 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
                                     backgroundColor: AppColors.primaryDark,
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 8),
+                                      horizontal: 8,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14),
                                     ),
@@ -260,8 +272,9 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
                                       'Exportar JPG',
                                       maxLines: 1,
                                       softWrap: false,
-                                      style:
-                                          TextStyle(fontWeight: FontWeight.w600),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -359,11 +372,14 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () => _confirmarAbate(context, animalId),
+                    onPressed: () => _confirmarAbate(animalId),
                     icon: const Icon(Icons.shield_moon, color: Colors.white),
                     label: const Text(
-                      'Registrar abate com selo IG',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      'Registrar abate',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(255, 36, 14, 233),
@@ -467,6 +483,18 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
 
           const SizedBox(height: 12),
 
+          _infoRow(Icons.timelapse, 'Idade', _formatAge(animal['birthDate'])),
+
+          const SizedBox(height: 12),
+
+          _infoRow(
+            isMale ? Icons.male : Icons.female,
+            'Sexo',
+            isMale ? 'Macho' : 'Fêmea',
+          ),
+
+          const SizedBox(height: 12),
+
           _infoRow(
             Icons.location_city,
             'Local de Nascimento',
@@ -480,6 +508,60 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
             'Propriedade Atual',
             animal['property']?['farmName'] ?? 'Desconhecida',
           ),
+          if ((animal['coatColor']?.toString() ?? '').isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _infoRow(
+              Icons.palette_outlined,
+              'Pelagem',
+              animal['coatColor'].toString(),
+            ),
+          ],
+          if (animal['birthWeight'] != null) ...[
+            const SizedBox(height: 12),
+            _infoRow(
+              Icons.scale_outlined,
+              'Peso ao nascer',
+              '${animal['birthWeight']} kg',
+            ),
+          ],
+          if (animal['weaningWeight'] != null) ...[
+            const SizedBox(height: 12),
+            _infoRow(
+              Icons.monitor_weight_outlined,
+              'Peso ao desmame',
+              '${animal['weaningWeight']} kg',
+            ),
+          ],
+          if (!isMale &&
+              (animal['coverageDate']?.toString() ?? '').isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _infoRow(
+              Icons.event_outlined,
+              'Data de cobertura',
+              _formatOptionalDate(animal['coverageDate']),
+            ),
+          ],
+          if (!isMale &&
+              (animal['lambingDate']?.toString() ?? '').isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _infoRow(
+              Icons.child_friendly,
+              'Data do parto',
+              _formatOptionalDate(animal['lambingDate']),
+            ),
+          ],
+          if (!isMale && animal['offspringIds'] is List) ...[
+            const SizedBox(height: 12),
+            _infoRow(
+              Icons.account_tree_outlined,
+              'Crias vinculadas',
+              '${(animal['offspringIds'] as List).length}',
+            ),
+          ],
+          if ((animal['notes']?.toString() ?? '').isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _infoRow(Icons.notes, 'Observações', animal['notes'].toString()),
+          ],
         ],
       ),
     );
@@ -565,12 +647,33 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
     );
   }
 
+  String _formatOptionalDate(dynamic value) {
+    final date = DateTime.tryParse(value?.toString() ?? '');
+    if (date == null) return value?.toString() ?? '';
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  String _formatAge(dynamic value) {
+    final birthDate = DateTime.tryParse(value?.toString() ?? '');
+    if (birthDate == null) return 'Não informada';
+    final now = DateTime.now();
+    var months = (now.year - birthDate.year) * 12 + now.month - birthDate.month;
+    if (now.day < birthDate.day) months--;
+    if (months < 12) return '$months meses';
+    final years = months ~/ 12;
+    final remainingMonths = months % 12;
+    return remainingMonths == 0
+        ? '$years ano(s)'
+        : '$years ano(s) e $remainingMonths mês(es)';
+  }
+
   // CONFIRMAÇÃO DE ABATE
-  void _confirmarAbate(BuildContext context, String id) {
+  Future<void> _confirmarAbate(String id) async {
     final animal = widget.animal;
     final String tagId = animal['tagId']?.toString() ?? 'Animal';
     final String birthDate = animal['birthDate'] ?? '';
-    
+
     DateTime? parsedBirthDate;
     try {
       parsedBirthDate = DateTime.parse(birthDate);
@@ -578,26 +681,18 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
       parsedBirthDate = DateTime.now().subtract(const Duration(days: 180));
     }
 
-    Navigator.push(
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (ctx) => SlaughterRegistrationScreen(
-          animalId: id,
-          animalTag: tagId,
-          birthDate: parsedBirthDate!,
+          animals: [
+            SlaughterAnimal(id: id, tagId: tagId, birthDate: parsedBirthDate!),
+          ],
         ),
       ),
-    ).then((result) {
-      if (result == true && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✓ Abate registrado com sucesso!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        Navigator.pop(context);
-      }
-    });
+    );
+    if (!mounted) return;
+    if (result == true) Navigator.pop(context);
   }
 
   Future<void> _openFullHistory(String animalId) async {
@@ -626,6 +721,4 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
       MaterialPageRoute(builder: (_) => AnimalHistoryScreen(events: events)),
     );
   }
-
-
 }

@@ -1,87 +1,158 @@
-class SlaughterRegistration {
-  final String animalId; // Usado apenas na URL, não enviado no corpo
+enum SlaughterMode {
+  standard('STANDARD', 'Abate padrão'),
+  igOwn('IG_OWN', 'IG por conta própria'),
+  igSlaughterhouse('IG_SLAUGHTERHOUSE', 'IG pelo abatedouro');
+
+  const SlaughterMode(this.apiValue, this.label);
+
+  final String apiValue;
+  final String label;
+
+  factory SlaughterMode.fromApi(String value) => values.firstWhere(
+    (mode) => mode.apiValue == value,
+    orElse: () => SlaughterMode.standard,
+  );
+}
+
+class SlaughterAnimal {
+  const SlaughterAnimal({
+    required this.id,
+    required this.tagId,
+    required this.birthDate,
+  });
+
+  final String id;
+  final String tagId;
+  final DateTime birthDate;
+
+  factory SlaughterAnimal.fromMap(Map<String, dynamic> map) {
+    final rawDate = map['birthDate']?.toString();
+    return SlaughterAnimal(
+      id:
+          map['sisovId']?.toString() ??
+          map['id']?.toString() ??
+          map['_id']?.toString() ??
+          '',
+      tagId: map['tagId']?.toString() ?? 'Sem coleira',
+      birthDate: DateTime.tryParse(rawDate ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
+class SlaughterCommonData {
   final DateTime slaughterDate;
   final String slaughterLocation;
-  final double carcassWeight;
-  final String proofOfAge; // 'RASTREABILIDADE' ou 'DENTES'
-  final String carcassColor; // 'VERMELHA_ROSADA'
-  final String fatColor; // 'BRANCA'
-  final String meatTexture; // 'FINA'
-  final bool hasBoletimEmbarque; // Possui Boletim de Embarque
-  final bool hasGTA; // Possui Guia de Trânsito Animal
-  final bool hasHTA; // Possui Higiene e Tecnologia de Abate
+  final String? frigorificoCode;
+  final String? additionalNotes;
+  final String? proofOfAge;
+  final String? carcassColor;
+  final String? fatColor;
+  final String? meatTexture;
+  final bool? hasBoletimEmbarque;
+  final bool? hasGTA;
+  final bool? hasHTA;
   final bool confirmWelfare;
   final bool confirmSanity;
-  final bool
-      geographicOriginConfirmed; // Criado em Tauá ou min. 3 meses na região (Art. 6º, §1º)
-  final bool
-      preSlaughterFastingConfirmed; // Dieta hídrica 12h + sólida 16h (Art. 8º)
-  final double carcassYield; // Rendimento da carcaça (%)
-  final String additionalNotes;
-  final String frigorificoCode; // Código do frigorífico (SIF/SIE/SIM)
+  final bool? geographicOriginConfirmed;
+  final bool? preSlaughterFastingConfirmed;
 
-  SlaughterRegistration({
-    required this.animalId,
+  const SlaughterCommonData({
     required this.slaughterDate,
     required this.slaughterLocation,
-    required this.carcassWeight,
-    required this.proofOfAge,
-    required this.carcassColor,
-    required this.fatColor,
-    required this.meatTexture,
-    required this.hasBoletimEmbarque,
-    required this.hasGTA,
-    required this.hasHTA,
-    required this.confirmWelfare,
-    required this.confirmSanity,
-    required this.geographicOriginConfirmed,
-    required this.preSlaughterFastingConfirmed,
-    required this.carcassYield,
-    required this.additionalNotes,
-    required this.frigorificoCode,
+    this.frigorificoCode,
+    this.additionalNotes,
+    this.proofOfAge,
+    this.carcassColor,
+    this.fatColor,
+    this.meatTexture,
+    this.hasBoletimEmbarque,
+    this.hasGTA,
+    this.hasHTA,
+    this.confirmWelfare = false,
+    this.confirmSanity = false,
+    this.geographicOriginConfirmed,
+    this.preSlaughterFastingConfirmed,
   });
 
   Map<String, dynamic> toJson() => {
-    'proofOfAge': proofOfAge,
-    'carcassColor': carcassColor,
-    'fatColor': fatColor,
-    'meatTexture': meatTexture,
-    'carcassWeight': carcassWeight,
-    'carcassYield': carcassYield,
-    'hasBoletimEmbarque': hasBoletimEmbarque,
-    'hasGTA': hasGTA,
-    'hasHTA': hasHTA,
     'slaughterDate': slaughterDate.toIso8601String(),
     'slaughterLocation': slaughterLocation,
-    'frigorificoCode': frigorificoCode,
-    'confirmWelfare': confirmWelfare,
-    'confirmSanity': confirmSanity,
-    'geographicOriginConfirmed': geographicOriginConfirmed,
-    'preSlaughterFastingConfirmed': preSlaughterFastingConfirmed,
-    if (additionalNotes.isNotEmpty) 'additionalNotes': additionalNotes,
+    if (frigorificoCode?.isNotEmpty == true) 'frigorificoCode': frigorificoCode,
+    if (additionalNotes?.isNotEmpty == true) 'additionalNotes': additionalNotes,
+    if (proofOfAge != null) 'proofOfAge': proofOfAge,
+    if (carcassColor != null) 'carcassColor': carcassColor,
+    if (fatColor != null) 'fatColor': fatColor,
+    if (meatTexture != null) 'meatTexture': meatTexture,
+    if (hasBoletimEmbarque != null) 'hasBoletimEmbarque': hasBoletimEmbarque,
+    if (hasGTA != null) 'hasGTA': hasGTA,
+    if (hasHTA != null) 'hasHTA': hasHTA,
+    if (proofOfAge != null) 'confirmWelfare': confirmWelfare,
+    if (proofOfAge != null) 'confirmSanity': confirmSanity,
+    if (geographicOriginConfirmed != null)
+      'geographicOriginConfirmed': geographicOriginConfirmed,
+    if (preSlaughterFastingConfirmed != null)
+      'preSlaughterFastingConfirmed': preSlaughterFastingConfirmed,
+  };
+}
+
+class SlaughterBatchItem {
+  const SlaughterBatchItem({
+    required this.animalId,
+    this.carcassWeight,
+    this.carcassYield,
+  });
+
+  final String animalId;
+  final double? carcassWeight;
+  final double? carcassYield;
+
+  Map<String, dynamic> toJson() => {
+    'animalId': animalId,
+    if (carcassWeight != null) 'carcassWeight': carcassWeight,
+    if (carcassYield != null) 'carcassYield': carcassYield,
+  };
+}
+
+class SlaughterBatchRequest {
+  const SlaughterBatchRequest({
+    required this.mode,
+    required this.commonData,
+    required this.items,
+  });
+
+  final SlaughterMode mode;
+  final SlaughterCommonData commonData;
+  final List<SlaughterBatchItem> items;
+
+  Map<String, dynamic> toJson() => {
+    'mode': mode.apiValue,
+    ...commonData.toJson(),
+    'items': items.map((item) => item.toJson()).toList(),
   };
 
-  factory SlaughterRegistration.fromJson(Map<String, dynamic> json) =>
-      SlaughterRegistration(
-        animalId: json['animalId'] as String? ?? '',
-        slaughterDate: DateTime.parse(json['slaughterDate'] as String),
-        slaughterLocation: json['slaughterLocation'] as String,
-        carcassWeight: (json['carcassWeight'] as num).toDouble(),
-        proofOfAge: json['proofOfAge'] as String,
-        carcassColor: json['carcassColor'] as String,
-        fatColor: json['fatColor'] as String,
-        meatTexture: json['meatTexture'] as String,
-        hasBoletimEmbarque: json['hasBoletimEmbarque'] as bool? ?? false,
-        hasGTA: json['hasGTA'] as bool? ?? false,
-        hasHTA: json['hasHTA'] as bool? ?? false,
-        confirmWelfare: json['confirmWelfare'] as bool? ?? false,
-        confirmSanity: json['confirmSanity'] as bool? ?? false,
-        geographicOriginConfirmed:
-            json['geographicOriginConfirmed'] as bool? ?? false,
-        preSlaughterFastingConfirmed:
-            json['preSlaughterFastingConfirmed'] as bool? ?? false,
-        carcassYield: (json['carcassYield'] as num).toDouble(),
-        additionalNotes: json['additionalNotes'] as String? ?? '',
-        frigorificoCode: json['frigorificoCode'] as String,
-      );
+  String? validate() {
+    if (items.isEmpty) return 'Selecione pelo menos um animal.';
+    if (items.any((item) => item.animalId.isEmpty)) {
+      return 'Há um animal sem identificador válido.';
+    }
+    if (commonData.slaughterLocation.trim().isEmpty) {
+      return 'Informe o local do abate.';
+    }
+    if (mode == SlaughterMode.igOwn) {
+      if (items.any(
+        (item) => item.carcassWeight == null || item.carcassWeight! <= 0,
+      )) {
+        return 'Informe um peso de carcaça válido para cada animal.';
+      }
+      if (items.any(
+        (item) =>
+            item.carcassYield == null ||
+            item.carcassYield! < 42 ||
+            item.carcassYield! > 100,
+      )) {
+        return 'O rendimento de cada carcaça deve ficar entre 42% e 100%.';
+      }
+    }
+    return null;
+  }
 }

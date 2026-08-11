@@ -13,7 +13,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   static const _dbName = 'sisov_local.db';
-  static const _dbVersion = 2;
+  static const _dbVersion = 3;
 
   static const tableSyncQueue = 'sync_queue';
   static const tableAnimals = 'animals';
@@ -57,7 +57,22 @@ class LocalDatabase {
         'ALTER TABLE $tableSyncQueue ADD COLUMN local_entity_id TEXT',
       );
     }
+    if (oldVersion >= 2 && oldVersion < 3) {
+      for (final statement in animalV3MigrationStatements) {
+        await db.execute(statement);
+      }
+    }
   }
+
+  static const animalV3MigrationStatements = <String>[
+    'ALTER TABLE $tableAnimals ADD COLUMN coat_color TEXT',
+    'ALTER TABLE $tableAnimals ADD COLUMN birth_weight REAL',
+    'ALTER TABLE $tableAnimals ADD COLUMN weaning_weight REAL',
+    'ALTER TABLE $tableAnimals ADD COLUMN notes TEXT',
+    'ALTER TABLE $tableAnimals ADD COLUMN coverage_date TEXT',
+    'ALTER TABLE $tableAnimals ADD COLUMN lambing_date TEXT',
+    'ALTER TABLE $tableAnimals ADD COLUMN offspring_ids_json TEXT',
+  ];
 
   Future<void> _createSyncQueue(Database db) async {
     await db.execute('''
@@ -88,6 +103,13 @@ class LocalDatabase {
         sex TEXT NOT NULL,
         birth_date TEXT NOT NULL,
         birth_city TEXT NOT NULL,
+        coat_color TEXT,
+        birth_weight REAL,
+        weaning_weight REAL,
+        notes TEXT,
+        coverage_date TEXT,
+        lambing_date TEXT,
+        offspring_ids_json TEXT,
         status TEXT NOT NULL DEFAULT 'ACTIVE',
         sync_status TEXT NOT NULL DEFAULT 'SYNCED',
         updated_at TEXT NOT NULL

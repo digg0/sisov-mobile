@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _cachedTotalAnimals = 0;
   int _cachedActiveAnimals = 0;
   int _cachedFemaleCount = 0;
+  int _cachedSlaughterPendingCount = 0;
   bool _showingCachedSnapshot = false;
 
   @override
@@ -105,6 +106,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _cachedSlaughteredCount = animals
           .where((a) => a['status']?.toString() == 'SLAUGHTERED')
           .length;
+      _cachedSlaughterPendingCount = animals
+          .where((a) => a['status']?.toString() == 'SLAUGHTER_PENDING')
+          .length;
     });
   }
 
@@ -141,10 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _navTo(Widget screen) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => screen),
-    );
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
     _loadUserData();
   }
 
@@ -166,7 +167,9 @@ class _HomeScreenState extends State<HomeScreen> {
       animalId = scannedText.replaceAll("sisov://manage/", "").trim();
       isManagementQR = true;
     } else if (scannedText.contains("https://sisov.com.br/rastreabilidade/")) {
-      animalId = scannedText.replaceAll("https://sisov.com.br/rastreabilidade/", "").trim();
+      animalId = scannedText
+          .replaceAll("https://sisov.com.br/rastreabilidade/", "")
+          .trim();
       isManagementQR = false;
     }
 
@@ -183,16 +186,11 @@ class _HomeScreenState extends State<HomeScreen> {
         // QR público: apenas leitura. QR de manejo: exige propriedade.
         if (isManagementQR && !isOwner) {
           _loadUserData();
-          _mostrarErro(
-            'Acesso negado: este animal pertence a outro produtor.',
-          );
+          _mostrarErro('Acesso negado: este animal pertence a outro produtor.');
           return;
         }
 
-        _navTo(AnimalDetailsScreen(
-          animal: animal,
-          readOnly: !isOwner,
-        ));
+        _navTo(AnimalDetailsScreen(animal: animal, readOnly: !isOwner));
       } else {
         _loadUserData();
         _mostrarErro("Animal não localizado.");
@@ -201,15 +199,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _mostrarErro(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.red),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
   }
 
   /// Confirma se o animal pertence ao produtor logado (API ou cache local).
   Future<bool> _isOwnedAnimal(Map<String, dynamic> animal) async {
     final currentUserId = _userProfile?['id']?.toString();
-    final animalProducerId = animal['producerId']?.toString() ??
+    final animalProducerId =
+        animal['producerId']?.toString() ??
         animal['property']?['producerId']?.toString();
     if (currentUserId != null &&
         animalProducerId != null &&
@@ -217,7 +216,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return true;
     }
 
-    final propertyId = animal['propertyId']?.toString() ??
+    final propertyId =
+        animal['propertyId']?.toString() ??
         animal['property']?['id']?.toString();
     if (propertyId == null || propertyId.isEmpty) return false;
 
@@ -242,22 +242,15 @@ class _HomeScreenState extends State<HomeScreen> {
       'abated_count',
     ]);
 
-    
     if (fieldCount > 0) return fieldCount;
 
-    
     try {
       final animals = await _animalService.getAnimals();
       final count = animals
-          .where((animal) => 
-              animal is Map && 
-              animal['status'] == 'SLAUGHTERED'
-          )
+          .where((animal) => animal is Map && animal['status'] == 'SLAUGHTERED')
           .length;
       return count;
-        } catch (_) {
-      
-    }
+    } catch (_) {}
 
     return 0;
   }
@@ -276,8 +269,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showDebugProfile() {
     if (!kDebugMode) return;
-    final profileJson =
-        _userProfile != null ? _userProfile!.toString() : 'Nenhum perfil carregado';
+    final profileJson = _userProfile != null
+        ? _userProfile!.toString()
+        : 'Nenhum perfil carregado';
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -306,13 +300,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent, 
+        statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: AppColors.background, 
-        systemNavigationBarIconBrightness: Brightness.dark, 
+        systemNavigationBarColor: AppColors.background,
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -332,104 +325,147 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        
+
         body: SafeArea(
-          
           bottom: true,
           child: _isLoadingProfile
-              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                )
               : RefreshIndicator(
-            onRefresh: _loadUserData,
-            color: AppColors.primary,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  _buildStatHeader(),
-                  _buildSyncBanner(),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24),
+                  onRefresh: _loadUserData,
+                  color: AppColors.primary,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (kDebugMode)
-                          GestureDetector(
-                            onLongPress: _showDebugProfile,
-                            child: const SizedBox.shrink(),
+                        _buildStatHeader(),
+                        _buildSyncBanner(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20.0,
+                            vertical: 24,
                           ),
-                        if (_showingCachedSnapshot)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Row(
-                              children: [
-                                Icon(Icons.cloud_off,
-                                    size: 16, color: Colors.orange.shade800),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Exibindo dados salvos no aparelho',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.orange.shade800,
-                                    fontWeight: FontWeight.w600,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (kDebugMode)
+                                GestureDetector(
+                                  onLongPress: _showDebugProfile,
+                                  child: const SizedBox.shrink(),
+                                ),
+                              if (_showingCachedSnapshot)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.cloud_off,
+                                        size: 16,
+                                        color: Colors.orange.shade800,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Exibindo dados salvos no aparelho',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.orange.shade800,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              const Text(
+                                "O que fazer",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildQuickActions(),
+                              const SizedBox(height: 32),
+                              const Text(
+                                "Resumo do Rebanho",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildStatusItem(
+                                "Fêmeas em reprodução",
+                                _displayCount([
+                                  'femaleCount',
+                                  'female_count',
+                                  'femalesCount',
+                                  'females_count',
+                                  'female_animals_count',
+                                ], _cachedFemaleCount).toString().padLeft(
+                                  2,
+                                  '0',
+                                ),
+                                Icons.female,
+                                Colors.pink,
+                              ),
+                              _buildStatusItem(
+                                "Transferências recentes",
+                                _cachedTransferCount.toString().padLeft(2, '0'),
+                                Icons.swap_horiz,
+                                Colors.blue,
+                              ),
+                              _buildStatusItem(
+                                "Alertas Sanitários",
+                                "00",
+                                Icons.warning_amber_rounded,
+                                Colors.orange,
+                              ),
+                              _buildStatusItem(
+                                "Finalizados (Abatidos)",
+                                _cachedSlaughteredCount.toString().padLeft(
+                                  2,
+                                  '0',
+                                ),
+                                Icons.verified,
+                                Colors.purple,
+                                onTap: () {
+                                  _navTo(
+                                    const AnimalSearchScreen(
+                                      isTransferMode: false,
+                                      showSlaughtered: true,
+                                    ),
+                                  );
+                                },
+                              ),
+                              if (_cachedSlaughterPendingCount > 0)
+                                _buildStatusItem(
+                                  "Abates pendentes de validação",
+                                  _cachedSlaughterPendingCount
+                                      .toString()
+                                      .padLeft(2, '0'),
+                                  Icons.pending_actions,
+                                  Colors.orange,
+                                  onTap: () {
+                                    _navTo(
+                                      const AnimalSearchScreen(
+                                        isTransferMode: false,
+                                        showSlaughtered: true,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              // Espaço extra no final para não "colar" na borda inferior do celular
+                              const SizedBox(height: 20),
+                            ],
                           ),
-                        const Text(
-                          "O que fazer",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                         ),
-                        const SizedBox(height: 16),
-                        _buildQuickActions(),
-                        const SizedBox(height: 32),
-                        const Text(
-                          "Resumo do Rebanho",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildStatusItem(
-                          "Fêmeas em reprodução",
-                          _displayCount([
-                            'femaleCount',
-                            'female_count',
-                            'femalesCount',
-                            'females_count',
-                            'female_animals_count',
-                          ], _cachedFemaleCount)
-                              .toString()
-                              .padLeft(2, '0'),
-                          Icons.female,
-                          Colors.pink,
-                        ),
-                        _buildStatusItem(
-                          "Transferências recentes",
-                          _cachedTransferCount.toString().padLeft(2, '0'),
-                          Icons.swap_horiz,
-                          Colors.blue,
-                        ),
-                        _buildStatusItem("Alertas Sanitários", "00", Icons.warning_amber_rounded, Colors.orange),
-                        _buildStatusItem(
-                          "Finalizados (Abatidos)",
-                          _cachedSlaughteredCount.toString().padLeft(2, '0'),
-                          Icons.verified,
-                          Colors.purple,
-                          onTap: () {
-                            _navTo(const AnimalSearchScreen(
-                              isTransferMode: false,
-                              showSlaughtered: true,
-                            ));
-                          },
-                        ),
-                        // Espaço extra no final para não "colar" na borda inferior do celular
-                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
+                ),
         ),
       ),
     );
@@ -441,15 +477,13 @@ class _HomeScreenState extends State<HomeScreen> {
       'total_animals',
       'animalsCount',
       'animals_count',
-    ], _cachedTotalAnimals)
-        .toString();
+    ], _cachedTotalAnimals).toString();
     final ativos = _displayCount([
       'activeAnimals',
       'active_animals',
       'activeAnimalCount',
       'active_animal_count',
-    ], _cachedActiveAnimals)
-        .toString();
+    ], _cachedActiveAnimals).toString();
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
@@ -517,8 +551,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTopStat(String label, String value) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
-        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
+        ),
       ],
     );
   }
@@ -532,37 +576,75 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisSpacing: 14,
       mainAxisSpacing: 14,
       children: [
-        _actionButton("Novo Ovino", Icons.add_circle_outline, AppColors.primary, () async {
-          await Navigator.pushNamed(context, '/select-property');
-          _loadUserData();
-        }),
-        _actionButton("Ler QR Code de Manejo", Icons.qr_code_scanner, AppColors.primary, _scanManagementQRCode),
-        _actionButton("Transferência", Icons.sync_alt, AppColors.primary, () async {
-          // Captura o sinal de sucesso (true) para incrementar o contador
-          // imediatamente, sem esperar o próximo getProfile().
-          final transferred = await Navigator.push<bool>(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const AnimalSearchScreen(isTransferMode: true),
-            ),
-          );
-          if (!mounted) return;
-          if (transferred == true) {
-            setState(() => _cachedTransferCount++);
-          }
-          _loadUserData();
-        }),
+        _actionButton(
+          "Novo Ovino",
+          Icons.add_circle_outline,
+          AppColors.primary,
+          () async {
+            await Navigator.pushNamed(context, '/select-property');
+            _loadUserData();
+          },
+        ),
+        _actionButton(
+          "Ler QR Code de Manejo",
+          Icons.qr_code_scanner,
+          AppColors.primary,
+          _scanManagementQRCode,
+        ),
+        _actionButton(
+          "Transferência",
+          Icons.sync_alt,
+          AppColors.primary,
+          () async {
+            // Captura o sinal de sucesso (true) para incrementar o contador
+            // imediatamente, sem esperar o próximo getProfile().
+            final transferred = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const AnimalSearchScreen(isTransferMode: true),
+              ),
+            );
+            if (!mounted) return;
+            if (transferred == true) {
+              setState(() => _cachedTransferCount++);
+            }
+            _loadUserData();
+          },
+        ),
         _actionButton("Rebanho", Icons.agriculture, AppColors.primary, () {
           _navTo(const AnimalSearchScreen(isTransferMode: false));
         }),
-        _actionButton("Nova Propriedade", Icons.location_on, AppColors.primary, () {
-          _navTo(const PropertyCreateScreen());
-        }),
+        _actionButton(
+          "Registrar abate",
+          Icons.fact_check_outlined,
+          AppColors.primary,
+          () {
+            _navTo(
+              const AnimalSearchScreen(
+                isTransferMode: false,
+                isSlaughterMode: true,
+              ),
+            );
+          },
+        ),
+        _actionButton(
+          "Nova Propriedade",
+          Icons.location_on,
+          AppColors.primary,
+          () {
+            _navTo(const PropertyCreateScreen());
+          },
+        ),
       ],
     );
   }
 
-  Widget _actionButton(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _actionButton(
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -583,11 +665,21 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
                 child: Icon(icon, color: color, size: 26),
               ),
               const SizedBox(height: 10),
-              Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ],
           ),
         ),
@@ -595,7 +687,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatusItem(String title, String count, IconData icon, Color color, {VoidCallback? onTap}) {
+  Widget _buildStatusItem(
+    String title,
+    String count,
+    IconData icon,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       child: Material(
@@ -614,20 +712,49 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: AppColors.borderSoft),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
                   child: Icon(icon, color: color, size: 22),
                 ),
                 const SizedBox(width: 16),
-                Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: AppColors.textSecondary))),
-                Text(count, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                Text(
+                  count,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                const Icon(Icons.chevron_right, color: AppColors.borderSoft, size: 20),
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.borderSoft,
+                  size: 20,
+                ),
               ],
             ),
           ),
@@ -645,7 +772,8 @@ class _HomeScreenState extends State<HomeScreen> {
           // mas embrulhamos em um MediaQuery para garantir que ele
           // saiba exatamente o tamanho da barra de status.
           UserAccountsDrawerHeader(
-            margin: EdgeInsets.zero, // Remove margens que podem causar desalinhamento
+            margin: EdgeInsets
+                .zero, // Remove margens que podem causar desalinhamento
             decoration: const BoxDecoration(color: AppColors.primary),
             currentAccountPicture: const CircleAvatar(
               backgroundColor: Colors.white,
@@ -662,13 +790,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _drawerItem(
             Icons.agriculture,
             'Minhas Propriedades',
-                () => Navigator.pushNamed(context, '/properties'),
+            () => Navigator.pushNamed(context, '/properties'),
           ),
-          _drawerItem(
-            Icons.settings_outlined,
-            'Configurações',
-                () {},
-          ),
+          _drawerItem(Icons.settings_outlined, 'Configurações', () {}),
 
           const Spacer(), // Empurra o botão de sair para o final
 
@@ -678,21 +802,16 @@ class _HomeScreenState extends State<HomeScreen> {
           // em cima da barra de navegação/gestos do sistema.
           SafeArea(
             top: false, // O topo já é tratado pelo Header
-            child: _drawerItem(
-              Icons.logout,
-              'Sair da Conta',
-              () async {
-                await SessionService.instance.logoutAndWipe();
-                if (mounted) {
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/login',
-                    (_) => false,
-                  );
-                }
-              },
-              color: Colors.red,
-            ),
+            child: _drawerItem(Icons.logout, 'Sair da Conta', () async {
+              await SessionService.instance.logoutAndWipe();
+              if (mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (_) => false,
+                );
+              }
+            }, color: Colors.red),
           ),
           const SizedBox(height: 10), // Respiro final
         ],
@@ -700,7 +819,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _drawerItem(IconData icon, String title, VoidCallback onTap, {Color? color}) {
+  Widget _drawerItem(
+    IconData icon,
+    String title,
+    VoidCallback onTap, {
+    Color? color,
+  }) {
     return ListTile(
       leading: Icon(icon, color: color ?? AppColors.primary),
       title: Text(title, style: TextStyle(color: color)),

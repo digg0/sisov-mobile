@@ -59,7 +59,9 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(resultado['message'] ?? 'Login realizado com sucesso.'),
+            content: Text(
+              resultado['message'] ?? 'Login realizado com sucesso.',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -183,22 +185,25 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: double.infinity,
                 child: Column(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image.asset(
-                        'assets/images/logo_sisov.png',
-                        width: 280,
-                        fit: BoxFit.contain,
+                    const Text(
+                      'SISOV',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 4,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
                     const Text(
-                      'E-mail e senha cadastrados',
+                      'Rastreabilidade que gera confiança.\n'
+                      'Confiança que gera valor.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white70,
                         fontWeight: FontWeight.w500,
                         fontSize: 15,
+                        height: 1.4,
                       ),
                     ),
                   ],
@@ -217,7 +222,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
                     physics: const ClampingScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -238,7 +244,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.email],
-                            onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_senhaFocus),
+                            onFieldSubmitted: (_) => FocusScope.of(
+                              context,
+                            ).requestFocus(_senhaFocus),
                             style: const TextStyle(fontSize: 16),
                             decoration: _inputStyle(
                               'Digite seu e-mail',
@@ -271,12 +279,18 @@ class _LoginScreenState extends State<LoginScreen> {
                               textMuted70,
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                  _obscureText
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
                                   color: AppColors.textMuted,
                                   size: 22,
                                 ),
-                                tooltip: _obscureText ? 'Mostrar senha' : 'Ocultar senha',
-                                onPressed: () => setState(() => _obscureText = !_obscureText),
+                                tooltip: _obscureText
+                                    ? 'Mostrar senha'
+                                    : 'Ocultar senha',
+                                onPressed: () => setState(
+                                  () => _obscureText = !_obscureText,
+                                ),
                               ),
                             ),
                             validator: AppValidators.passwordLogin,
@@ -289,7 +303,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               onPressed: _isLoading ? null : _fazerLogin,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
-                                disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
+                                disabledBackgroundColor: AppColors.primary
+                                    .withValues(alpha: 0.6),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
@@ -362,18 +377,30 @@ class _LoginScreenState extends State<LoginScreen> {
                               children: [
                                 const Text(
                                   'Ainda não tem conta?',
-                                  style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
                                 SizedBox(
                                   width: 190,
                                   height: 52,
                                   child: OutlinedButton.icon(
-                                    onPressed: () => Navigator.pushNamed(context, '/register'),
-                                    icon: const Icon(Icons.person_add_alt_1, color: AppColors.primary),
+                                    onPressed: () => Navigator.pushNamed(
+                                      context,
+                                      '/register',
+                                    ),
+                                    icon: const Icon(
+                                      Icons.person_add_alt_1,
+                                      color: AppColors.primary,
+                                    ),
                                     label: const Text('Criar conta'),
                                     style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(color: AppColors.primary, width: 2),
+                                      side: const BorderSide(
+                                        color: AppColors.primary,
+                                        width: 2,
+                                      ),
                                       foregroundColor: AppColors.primary,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(16),
@@ -398,7 +425,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  InputDecoration _inputStyle(String hint, IconData icon, Color hintColor, {Widget? suffixIcon}) {
+  InputDecoration _inputStyle(
+    String hint,
+    IconData icon,
+    Color hintColor, {
+    Widget? suffixIcon,
+  }) {
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: hintColor, fontSize: 15),

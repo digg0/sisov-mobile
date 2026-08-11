@@ -35,10 +35,7 @@ class AnimalService {
       await _cache.deleteAnimal(localId);
     }
 
-    return {
-      ...result,
-      'localEntityId': localId,
-    };
+    return {...result, 'localEntityId': localId};
   }
 
   Future<Map<String, dynamic>> getAnimal(String identifier) async {
@@ -50,8 +47,8 @@ class AnimalService {
         final animal = decoded is Map && decoded['data'] is Map
             ? Map<String, dynamic>.from(decoded['data'] as Map)
             : decoded is Map
-                ? Map<String, dynamic>.from(decoded)
-                : null;
+            ? Map<String, dynamic>.from(decoded)
+            : null;
         if (animal != null) {
           await _cache.upsertAnimal(animal);
           return {'success': true, 'data': animal};
@@ -172,20 +169,23 @@ class AnimalService {
     return result;
   }
 
-  Future<Map<String, dynamic>> registerSlaughter(
-    SlaughterRegistration registration,
+  Future<Map<String, dynamic>> registerSlaughterBatch(
+    SlaughterBatchRequest registration,
   ) async {
     final result = await SyncService.instance.submitWrite(
-      endpoint:
-          '/animals/${registration.animalId}/slaughter-with-requirements',
+      endpoint: '/animals/slaughter-batch',
       payload: registration.toJson(),
-      label: 'Registro de abate',
+      label: registration.items.length == 1
+          ? 'Registro de abate'
+          : 'Registro de abate em lote',
     );
     if (result['success'] == true) {
-      await _cache.updateAnimalStatus(
-        registration.animalId,
-        'SLAUGHTERED',
-      );
+      final status = registration.mode == SlaughterMode.igSlaughterhouse
+          ? 'SLAUGHTER_PENDING'
+          : 'SLAUGHTERED';
+      for (final item in registration.items) {
+        await _cache.updateAnimalStatus(item.animalId, status);
+      }
     }
     return result;
   }
@@ -210,9 +210,8 @@ class AnimalService {
         final events = <ManagementEventModel>[];
 
         if (body is Map<String, dynamic>) {
-          final list = body['managementEvents'] ??
-              body['events'] ??
-              body['data'];
+          final list =
+              body['managementEvents'] ?? body['events'] ?? body['data'];
           if (list is List) {
             for (final item in list) {
               if (item is Map<String, dynamic>) {
