@@ -34,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _cachedActiveAnimals = 0;
   int _cachedFemaleCount = 0;
   int _cachedSlaughterPendingCount = 0;
+  int _cachedDeadCount = 0;
   bool _showingCachedSnapshot = false;
 
   @override
@@ -108,6 +109,9 @@ class _HomeScreenState extends State<HomeScreen> {
           .length;
       _cachedSlaughterPendingCount = animals
           .where((a) => a['status']?.toString() == 'SLAUGHTER_PENDING')
+          .length;
+      _cachedDeadCount = animals
+          .where((a) => a['status']?.toString() == 'DEAD')
           .length;
     });
   }
@@ -424,7 +428,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Colors.orange,
                               ),
                               _buildStatusItem(
-                                "Finalizados (Abatidos)",
+                                "Animais abatidos",
                                 _cachedSlaughteredCount.toString().padLeft(
                                   2,
                                   '0',
@@ -436,6 +440,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                     const AnimalSearchScreen(
                                       isTransferMode: false,
                                       showSlaughtered: true,
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildStatusItem(
+                                "Animais mortos",
+                                _cachedDeadCount.toString().padLeft(2, '0'),
+                                Icons.heart_broken_outlined,
+                                Colors.grey.shade700,
+                                onTap: () {
+                                  _navTo(
+                                    const AnimalSearchScreen(
+                                      isTransferMode: false,
+                                      showDead: true,
                                     ),
                                   );
                                 },

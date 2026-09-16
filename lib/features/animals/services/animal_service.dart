@@ -169,6 +169,27 @@ class AnimalService {
     return result;
   }
 
+  Future<Map<String, dynamic>> reportDeath({
+    required String animalId,
+    required DateTime deathDate,
+    required String cause,
+    String? notes,
+  }) async {
+    final result = await SyncService.instance.submitWrite(
+      endpoint: '/animals/$animalId/death',
+      payload: {
+        'deathDate': deathDate.toIso8601String(),
+        'cause': cause,
+        if (notes?.trim().isNotEmpty == true) 'notes': notes!.trim(),
+      },
+      label: 'Comunicação de morte',
+    );
+    if (result['success'] == true) {
+      await _cache.updateAnimalStatus(animalId, 'DEAD');
+    }
+    return result;
+  }
+
   Future<Map<String, dynamic>> registerSlaughterBatch(
     SlaughterBatchRequest registration,
   ) async {

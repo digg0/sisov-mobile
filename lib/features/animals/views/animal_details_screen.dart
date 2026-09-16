@@ -10,6 +10,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/image_exporter.dart';
 import '../models/slaughter_registration_model.dart';
 import '../services/animal_service.dart';
+import 'animal_death_report_screen.dart';
 import 'animal_history_screen.dart';
 import 'animal_management_event_screen.dart';
 import 'slaughter_registration_screen.dart';
@@ -39,6 +40,7 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
 
   static const String statusSlaughtered = 'SLAUGHTERED';
   static const String statusSlaughterPending = 'SLAUGHTER_PENDING';
+  static const String statusDead = 'DEAD';
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +53,7 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
 
     final bool isSlaughtered = animal['status'] == statusSlaughtered;
     final bool isSlaughterPending = animal['status'] == statusSlaughterPending;
+    final bool isDead = animal['status'] == statusDead;
 
     final Color statusCor = isActive
         ? Colors.green
@@ -122,7 +125,9 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
                     ? '🟢 ATIVO NA PROPRIEDADE'
                     : isSlaughterPending
                     ? '🟠 ABATE PENDENTE DE VALIDAÇÃO'
-                    : '🔴 ABATIDO/INATIVO',
+                    : isDead
+                    ? '⚫ MORTO'
+                    : '🔴 ABATIDO',
 
                 style: TextStyle(
                   color: statusCor,
@@ -368,7 +373,7 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
             // BOTÃO ABATE
             if (canManage)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
+                padding: const EdgeInsets.only(top: 20),
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -384,6 +389,27 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(255, 36, 14, 233),
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            if (canManage)
+              Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _communicateDeath(animalId),
+                    icon: const Icon(Icons.report_outlined),
+                    label: const Text('Comunicar morte'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.danger,
+                      side: const BorderSide(color: AppColors.danger),
                       padding: const EdgeInsets.symmetric(vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -693,6 +719,20 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
     );
     if (!mounted) return;
     if (result == true) Navigator.pop(context);
+  }
+
+  Future<void> _communicateDeath(String animalId) async {
+    final completed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AnimalDeathReportScreen(
+          animalId: animalId,
+          tagId: widget.animal['tagId']?.toString() ?? 'Animal',
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (completed == true) Navigator.pop(context, true);
   }
 
   Future<void> _openFullHistory(String animalId) async {
