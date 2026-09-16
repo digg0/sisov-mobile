@@ -16,7 +16,6 @@ class AnimalCreateScreen extends StatefulWidget {
 class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
   final _formKey = GlobalKey<FormState>();
   final _animalService = AnimalService();
-  final _tagController = TextEditingController();
   final _breedController = TextEditingController();
   final _cityController = TextEditingController();
   final _coatColorController = TextEditingController();
@@ -60,7 +59,6 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
 
   @override
   void dispose() {
-    _tagController.dispose();
     _breedController.dispose();
     _cityController.dispose();
     _coatColorController.dispose();
@@ -116,7 +114,6 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
 
     setState(() => _isLoading = true);
     final data = <String, dynamic>{
-      'tagId': _tagController.text.trim(),
       'propertyId': widget.propertyId,
       'breed': _breedController.text.trim(),
       'sex': _selectedSex,
@@ -180,12 +177,26 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
           padding: const EdgeInsets.all(20),
           children: [
             _section('Identificação'),
-            _field(
-              _tagController,
-              'Número da coleira',
-              Icons.tag,
-              required: true,
-              digitsOnly: true,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.tag, color: AppColors.primary),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'O número da coleira será gerado automaticamente pelo SISOV ao salvar.',
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
             _section('Características'),
@@ -359,15 +370,10 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
     String label,
     IconData icon, {
     bool required = false,
-    bool digitsOnly = false,
     int maxLines = 1,
   }) => TextFormField(
     controller: controller,
     maxLines: maxLines,
-    keyboardType: digitsOnly ? TextInputType.number : TextInputType.text,
-    inputFormatters: digitsOnly
-        ? [FilteringTextInputFormatter.digitsOnly]
-        : null,
     decoration: _decoration(label, icon),
     validator: required
         ? (value) =>
