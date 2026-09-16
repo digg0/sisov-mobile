@@ -13,11 +13,13 @@ class AnimalSearchScreen extends StatefulWidget {
     super.key,
     required this.isTransferMode,
     this.showSlaughtered = false,
+    this.showDead = false,
     this.isSlaughterMode = false,
   });
 
   final bool isTransferMode;
   final bool showSlaughtered;
+  final bool showDead;
   final bool isSlaughterMode;
 
   @override
@@ -53,6 +55,7 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
         if (widget.showSlaughtered) {
           return status == 'SLAUGHTERED' || status == 'SLAUGHTER_PENDING';
         }
+        if (widget.showDead) return status == 'DEAD';
         return status == 'ACTIVE';
       }).toList();
 
@@ -235,6 +238,8 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
         title: Text(
           widget.showSlaughtered
               ? 'Abatidos / Pendentes'
+              : widget.showDead
+              ? 'Animais mortos'
               : widget.isSlaughterMode
               ? 'Selecionar animais'
               : widget.isTransferMode
