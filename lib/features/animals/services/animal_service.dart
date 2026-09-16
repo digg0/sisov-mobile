@@ -17,6 +17,7 @@ class AnimalService {
     final optimistic = {
       ...animalData,
       'sisovId': localId,
+      'tagId': 'Aguardando sincronização',
       'status': 'ACTIVE',
       'syncStatus': 'PENDING',
     };
