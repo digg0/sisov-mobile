@@ -36,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _cachedSlaughterPendingCount = 0;
   int _cachedDeadCount = 0;
   bool _showingCachedSnapshot = false;
+  bool _isSendingPendingData = false;
 
   @override
   void initState() {
@@ -206,6 +207,51 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+  }
+
+  Future<void> _sendPendingData() async {
+    if (_isSendingPendingData) return;
+    setState(() => _isSendingPendingData = true);
+
+    try {
+      final online = await SyncService.instance.checkConnection();
+      if (!online) {
+        if (mounted) {
+          _mostrarErro(
+            'Sem conexão com o SISOV. Os dados continuam salvos no aparelho.',
+          );
+        }
+        return;
+      }
+
+      await SyncService.instance.flush();
+      if (!mounted) return;
+
+      final remaining = SyncService.instance.pendingCount.value;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            remaining == 0
+                ? 'Todos os dados foram enviados com sucesso.'
+                : 'Ainda existem $remaining operação(ões) aguardando envio.',
+          ),
+          backgroundColor: remaining == 0
+              ? AppColors.success
+              : AppColors.warning,
+        ),
+      );
+      await _loadUserData();
+    } catch (_) {
+      if (mounted) {
+        _mostrarErro(
+          'Não foi possível concluir o envio. Os dados permanecem salvos no aparelho.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSendingPendingData = false);
+      }
+    }
   }
 
   /// Confirma se o animal pertence ao produtor logado (API ou cache local).
@@ -529,7 +575,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return ValueListenableBuilder<int>(
       valueListenable: SyncService.instance.pendingCount,
       builder: (context, count, _) {
-        if (count <= 0) return const SizedBox.shrink();
+        if (count <= 0 && !_isSendingPendingData) {
+          return const SizedBox.shrink();
+        }
         return Container(
           width: double.infinity,
           margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -555,10 +603,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              TextButton(
-                onPressed: () => SyncService.instance.flush(),
-                child: const Text('Enviar agora'),
-              ),
+              if (_isSendingPendingData)
+                const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                TextButton(
+                  onPressed: _sendPendingData,
+                  child: const Text('Enviar agora'),
+                ),
             ],
           ),
         );
@@ -627,6 +682,19 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() => _cachedTransferCount++);
             }
             _loadUserData();
+          },
+        ),
+        _actionButton(
+          "Comunicar morte",
+          Icons.heart_broken_outlined,
+          AppColors.danger,
+          () {
+            _navTo(
+              const AnimalSearchScreen(
+                isTransferMode: false,
+                isDeathMode: true,
+              ),
+            );
           },
         ),
         _actionButton("Rebanho", Icons.agriculture, AppColors.primary, () {

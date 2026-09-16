@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../models/slaughter_registration_model.dart';
 import '../services/animal_service.dart';
+import 'animal_death_report_screen.dart';
 import 'animal_details_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'slaughter_registration_screen.dart';
@@ -15,12 +16,14 @@ class AnimalSearchScreen extends StatefulWidget {
     this.showSlaughtered = false,
     this.showDead = false,
     this.isSlaughterMode = false,
+    this.isDeathMode = false,
   });
 
   final bool isTransferMode;
   final bool showSlaughtered;
   final bool showDead;
   final bool isSlaughterMode;
+  final bool isDeathMode;
 
   @override
   State<AnimalSearchScreen> createState() => _AnimalSearchScreenState();
@@ -120,6 +123,32 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => SlaughterRegistrationScreen(animals: selected),
+      ),
+    );
+    if (!mounted) return;
+    if (completed == true) Navigator.pop(context, true);
+  }
+
+  Future<void> _openDeathReport(Map<String, dynamic> animal) async {
+    final animalId = await _getAnimalId(animal);
+    if (!mounted) return;
+    if (animalId == null || animalId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível identificar este animal.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final completed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AnimalDeathReportScreen(
+          animalId: animalId,
+          tagId: animal['tagId']?.toString() ?? 'Animal',
+        ),
       ),
     );
     if (!mounted) return;
@@ -242,6 +271,8 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
               ? 'Animais mortos'
               : widget.isSlaughterMode
               ? 'Selecionar animais'
+              : widget.isDeathMode
+              ? 'Comunicar morte'
               : widget.isTransferMode
               ? 'Transferência'
               : 'Meu Rebanho',
@@ -414,6 +445,8 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
                 });
               } else if (widget.isTransferMode) {
                 _iniciarTransferenciaComDestino(animal);
+              } else if (widget.isDeathMode) {
+                _openDeathReport(Map<String, dynamic>.from(animal as Map));
               } else {
                 Navigator.push(
                   context,
