@@ -158,6 +158,22 @@ class AnimalService {
     );
   }
 
+  Future<Map<String, dynamic>> transferAnimalsBatch({
+    required List<String> animalIds,
+    required String destinationPropertyId,
+    required String destinationProducerId,
+  }) {
+    return SyncService.instance.submitWrite(
+      endpoint: '/animals/transfer-batch',
+      payload: {
+        'animalIds': animalIds,
+        'destinationPropertyId': destinationPropertyId,
+        'destinationProducerId': destinationProducerId,
+      },
+      label: 'Transferência de ${animalIds.length} animais',
+    );
+  }
+
   Future<Map<String, dynamic>> slaughterAnimal(String animalId) async {
     final result = await SyncService.instance.submitWrite(
       endpoint: '/animals/$animalId/slaughter',

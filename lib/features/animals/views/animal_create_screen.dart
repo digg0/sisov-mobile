@@ -20,7 +20,6 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
   final _cityController = TextEditingController();
   final _coatColorController = TextEditingController();
   final _birthWeightController = TextEditingController();
-  final _weaningWeightController = TextEditingController();
   final _notesController = TextEditingController();
 
   String _selectedSex = 'FEMALE';
@@ -63,7 +62,6 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
     _cityController.dispose();
     _coatColorController.dispose();
     _birthWeightController.dispose();
-    _weaningWeightController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -123,8 +121,6 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
         'coatColor': _coatColorController.text.trim(),
       if (_number(_birthWeightController.text) != null)
         'birthWeight': _number(_birthWeightController.text),
-      if (_number(_weaningWeightController.text) != null)
-        'weaningWeight': _number(_weaningWeightController.text),
       if (_notesController.text.trim().isNotEmpty)
         'notes': _notesController.text.trim(),
       if (_selectedSex == 'FEMALE' && _coverageDate != null)
@@ -230,23 +226,7 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
               required: true,
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _weightField(
-                    _birthWeightController,
-                    'Peso ao nascer (kg)',
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _weightField(
-                    _weaningWeightController,
-                    'Peso ao desmame (kg)',
-                  ),
-                ),
-              ],
-            ),
+            _weightField(_birthWeightController, 'Peso ao nascer (kg)'),
             if (_selectedSex == 'FEMALE') ...[
               const SizedBox(height: 20),
               _section('Reprodução'),

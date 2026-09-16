@@ -155,24 +155,14 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
     if (completed == true) Navigator.pop(context, true);
   }
 
-  Future<void> _iniciarTransferenciaComDestino(
-    Map<String, dynamic> animal,
-  ) async {
-    final animalId = await _getAnimalId(animal);
-    if (animalId == null || animalId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro: ID do animal não encontrado'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
+  Future<void> _transferSelectedAnimals() async {
+    if (_selectedAnimalIds.isEmpty) return;
+    final animalIds = _selectedAnimalIds.toList(growable: false);
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const QRScannerScreen()),
     );
+    if (!mounted) return;
 
     Map<String, dynamic>? destinationData;
     if (result is Map<String, dynamic>) {
@@ -216,8 +206,8 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
     }
 
     try {
-      final success = await _animalService.transferAnimal(
-        animalId: animalId,
+      final success = await _animalService.transferAnimalsBatch(
+        animalIds: animalIds,
         destinationPropertyId: destinationPropertyId,
         destinationProducerId: destinationProducerId,
       );
@@ -231,8 +221,8 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
             content: Text(
               queued
                   ? (success['message'] ??
-                        'Transferência salva no aparelho. Será enviada quando houver internet.')
-                  : '✓ Transferência concluída com sucesso!',
+                        'Transferência em lote salva no aparelho. Será enviada quando houver internet.')
+                  : '✓ ${animalIds.length} animal(is) transferido(s) com sucesso!',
             ),
             backgroundColor: queued ? Colors.orange : Colors.green,
           ),
@@ -274,7 +264,7 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
               : widget.isDeathMode
               ? 'Comunicar morte'
               : widget.isTransferMode
-              ? 'Transferência'
+              ? 'Selecionar para transferência'
               : 'Meu Rebanho',
           style: const TextStyle(
             color: Colors.white,
@@ -285,9 +275,12 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          if (widget.isSlaughterMode && _selectedAnimalIds.isNotEmpty)
+          if ((widget.isSlaughterMode || widget.isTransferMode) &&
+              _selectedAnimalIds.isNotEmpty)
             TextButton(
-              onPressed: _openSlaughterBatch,
+              onPressed: widget.isSlaughterMode
+                  ? _openSlaughterBatch
+                  : _transferSelectedAnimals,
               child: Text(
                 'Continuar (${_selectedAnimalIds.length})',
                 style: const TextStyle(
@@ -315,9 +308,11 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
               onChanged: _filterAnimals,
               decoration: InputDecoration(
                 hintText: 'Buscar por coleira ou raça...',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                hintStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                ),
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.15),
+                fillColor: Colors.white.withValues(alpha: 0.15),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -398,7 +393,7 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
               horizontal: 16,
               vertical: 8,
             ),
-            leading: widget.isSlaughterMode
+            leading: widget.isSlaughterMode || widget.isTransferMode
                 ? Checkbox(
                     value: selected,
                     onChanged: (_) => setState(() {
@@ -409,8 +404,8 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
                   )
                 : CircleAvatar(
                     backgroundColor: isMale
-                        ? Colors.blue.withOpacity(0.1)
-                        : Colors.pink.withOpacity(0.1),
+                        ? Colors.blue.withValues(alpha: 0.1)
+                        : Colors.pink.withValues(alpha: 0.1),
                     child: Icon(
                       isMale ? Icons.male : Icons.female,
                       color: isMale ? Colors.blue : Colors.pink,
@@ -431,20 +426,18 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
                   ? '${animal['breed'] ?? 'Raça não informada'} · Aguardando envio'
                   : (animal['breed'] ?? 'Raça não informada'),
             ),
-            trailing: widget.isSlaughterMode
+            trailing: widget.isSlaughterMode || widget.isTransferMode
                 ? null
                 : animal['syncStatus'] == 'PENDING'
                 ? const Icon(Icons.cloud_upload_outlined, color: Colors.orange)
                 : const Icon(Icons.chevron_right, color: AppColors.textMuted),
             onTap: () {
-              if (widget.isSlaughterMode) {
+              if (widget.isSlaughterMode || widget.isTransferMode) {
                 setState(() {
                   selected
                       ? _selectedAnimalIds.remove(id)
                       : _selectedAnimalIds.add(id);
                 });
-              } else if (widget.isTransferMode) {
-                _iniciarTransferenciaComDestino(animal);
               } else if (widget.isDeathMode) {
                 _openDeathReport(Map<String, dynamic>.from(animal as Map));
               } else {

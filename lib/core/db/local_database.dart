@@ -13,7 +13,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   static const _dbName = 'sisov_local.db';
-  static const _dbVersion = 3;
+  static const _dbVersion = 4;
 
   static const tableSyncQueue = 'sync_queue';
   static const tableAnimals = 'animals';
@@ -62,16 +62,57 @@ class LocalDatabase {
         await db.execute(statement);
       }
     }
+    if (oldVersion < 4) {
+      for (final statement in animalV4MigrationStatements) {
+        await db.execute(statement);
+      }
+    }
   }
 
   static const animalV3MigrationStatements = <String>[
     'ALTER TABLE $tableAnimals ADD COLUMN coat_color TEXT',
     'ALTER TABLE $tableAnimals ADD COLUMN birth_weight REAL',
-    'ALTER TABLE $tableAnimals ADD COLUMN weaning_weight REAL',
     'ALTER TABLE $tableAnimals ADD COLUMN notes TEXT',
     'ALTER TABLE $tableAnimals ADD COLUMN coverage_date TEXT',
     'ALTER TABLE $tableAnimals ADD COLUMN lambing_date TEXT',
     'ALTER TABLE $tableAnimals ADD COLUMN offspring_ids_json TEXT',
+  ];
+
+  static const animalV4MigrationStatements = <String>[
+    '''
+      CREATE TABLE animals_v4 (
+        sisov_id TEXT PRIMARY KEY,
+        tag_id TEXT,
+        property_id TEXT NOT NULL,
+        breed TEXT NOT NULL,
+        sex TEXT NOT NULL,
+        birth_date TEXT NOT NULL,
+        birth_city TEXT NOT NULL,
+        coat_color TEXT,
+        birth_weight REAL,
+        notes TEXT,
+        coverage_date TEXT,
+        lambing_date TEXT,
+        offspring_ids_json TEXT,
+        status TEXT NOT NULL DEFAULT 'ACTIVE',
+        sync_status TEXT NOT NULL DEFAULT 'SYNCED',
+        updated_at TEXT NOT NULL
+      )
+    ''',
+    '''
+      INSERT INTO animals_v4 (
+        sisov_id, tag_id, property_id, breed, sex, birth_date, birth_city,
+        coat_color, birth_weight, notes, coverage_date, lambing_date,
+        offspring_ids_json, status, sync_status, updated_at
+      )
+      SELECT
+        sisov_id, tag_id, property_id, breed, sex, birth_date, birth_city,
+        coat_color, birth_weight, notes, coverage_date, lambing_date,
+        offspring_ids_json, status, sync_status, updated_at
+      FROM $tableAnimals
+    ''',
+    'DROP TABLE $tableAnimals',
+    'ALTER TABLE animals_v4 RENAME TO $tableAnimals',
   ];
 
   Future<void> _createSyncQueue(Database db) async {
@@ -105,7 +146,6 @@ class LocalDatabase {
         birth_city TEXT NOT NULL,
         coat_color TEXT,
         birth_weight REAL,
-        weaning_weight REAL,
         notes TEXT,
         coverage_date TEXT,
         lambing_date TEXT,

@@ -81,10 +81,20 @@ void main() {
   });
 
   test('SQLite v3 migration preserves legacy rows by only adding columns', () {
-    expect(LocalDatabase.animalV3MigrationStatements, hasLength(7));
+    expect(LocalDatabase.animalV3MigrationStatements, hasLength(6));
     expect(
       LocalDatabase.animalV3MigrationStatements,
       everyElement(startsWith('ALTER TABLE animals ADD COLUMN')),
     );
   });
+
+  test(
+    'SQLite v4 migration removes the discontinued weaning weight column',
+    () {
+      final migration = LocalDatabase.animalV4MigrationStatements.join(' ');
+      expect(migration, isNot(contains('weaning_weight')));
+      expect(migration, contains('DROP TABLE animals'));
+      expect(migration, contains('RENAME TO animals'));
+    },
+  );
 }

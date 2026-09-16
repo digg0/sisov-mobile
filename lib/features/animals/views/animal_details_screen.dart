@@ -550,14 +550,6 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
               '${animal['birthWeight']} kg',
             ),
           ],
-          if (animal['weaningWeight'] != null) ...[
-            const SizedBox(height: 12),
-            _infoRow(
-              Icons.monitor_weight_outlined,
-              'Peso ao desmame',
-              '${animal['weaningWeight']} kg',
-            ),
-          ],
           if (!isMale &&
               (animal['coverageDate']?.toString() ?? '').isNotEmpty) ...[
             const SizedBox(height: 12),
