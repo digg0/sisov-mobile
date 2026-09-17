@@ -5,6 +5,7 @@ class ManagementEventModel {
   final String eventType;
   final String? description;
   final String? eventLocation;
+  final String? value;
   final DateTime? occurredAt;
 
   ManagementEventModel({
@@ -14,6 +15,7 @@ class ManagementEventModel {
     required this.eventType,
     this.description,
     this.eventLocation,
+    this.value,
     this.occurredAt,
   });
 
@@ -34,6 +36,7 @@ class ManagementEventModel {
       eventType: json['eventType']?.toString() ?? 'UNKNOWN',
       description: json['description']?.toString(),
       eventLocation: json['eventLocation']?.toString(),
+      value: json['value']?.toString(),
       occurredAt: occurredAt,
     );
   }
@@ -75,6 +78,9 @@ class ManagementEventModel {
 
   String get subtitle {
     final parts = <String>[];
+    if (value != null && value!.isNotEmpty) {
+      parts.add(eventType == 'VACCINATION' ? 'Vacina: $value' : value!);
+    }
     if (description != null && description!.isNotEmpty) {
       parts.add(description!);
     }

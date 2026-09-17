@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/location/location_capture_field.dart';
 import '../../../core/location/location_service.dart';
@@ -23,47 +22,16 @@ class _SlaughterRegistrationScreenState
   final _animalService = AnimalService();
   final _slaughterhouseCodeController = TextEditingController();
   final _notesController = TextEditingController();
-  final _weightControllers = <String, TextEditingController>{};
-  final _yieldControllers = <String, TextEditingController>{};
 
   SlaughterMode _mode = SlaughterMode.standard;
   DateTime _slaughterDate = DateTime.now();
   LocationSnapshot? _slaughterLocation;
-  String _proofOfAge = 'RASTREABILIDADE';
-  String _carcassColor = 'VERMELHA_ROSADA';
-  String _fatColor = 'BRANCA';
-  String _meatTexture = 'FINA';
-  bool _hasBoletimEmbarque = false;
-  bool _hasGTA = false;
-  bool _hasHTA = false;
-  bool _confirmWelfare = false;
-  bool _confirmSanity = false;
-  bool _confirmOrigin = false;
-  bool _confirmFasting = false;
   bool _submitting = false;
-
-  bool get _isOwnIg => _mode == SlaughterMode.igOwn;
-  bool get _needsSlaughterhouse => _mode != SlaughterMode.standard;
-
-  @override
-  void initState() {
-    super.initState();
-    for (final animal in widget.animals) {
-      _weightControllers[animal.id] = TextEditingController();
-      _yieldControllers[animal.id] = TextEditingController();
-    }
-  }
 
   @override
   void dispose() {
     _slaughterhouseCodeController.dispose();
     _notesController.dispose();
-    for (final controller in _weightControllers.values) {
-      controller.dispose();
-    }
-    for (final controller in _yieldControllers.values) {
-      controller.dispose();
-    }
     super.dispose();
   }
 
@@ -84,64 +52,21 @@ class _SlaughterRegistrationScreenState
         slaughterDate: _slaughterDate,
         slaughterLocation: _slaughterLocation?.label ?? '',
         location: _slaughterLocation?.toJson(),
-        frigorificoCode: _needsSlaughterhouse
+        frigorificoCode: _mode == SlaughterMode.igSlaughterhouse
             ? _slaughterhouseCodeController.text.trim()
             : null,
         additionalNotes: _notesController.text.trim(),
-        proofOfAge: _isOwnIg ? _proofOfAge : null,
-        carcassColor: _isOwnIg ? _carcassColor : null,
-        fatColor: _isOwnIg ? _fatColor : null,
-        meatTexture: _isOwnIg ? _meatTexture : null,
-        hasBoletimEmbarque: _isOwnIg ? _hasBoletimEmbarque : null,
-        hasGTA: _isOwnIg ? _hasGTA : null,
-        hasHTA: _isOwnIg ? _hasHTA : null,
-        confirmWelfare: _confirmWelfare,
-        confirmSanity: _confirmSanity,
-        geographicOriginConfirmed: _isOwnIg ? _confirmOrigin : null,
-        preSlaughterFastingConfirmed: _isOwnIg ? _confirmFasting : null,
       ),
       items: widget.animals
-          .map(
-            (animal) => SlaughterBatchItem(
-              animalId: animal.id,
-              carcassWeight: _isOwnIg
-                  ? _parseNumber(_weightControllers[animal.id]!.text)
-                  : null,
-              carcassYield: _isOwnIg
-                  ? _parseNumber(_yieldControllers[animal.id]!.text)
-                  : null,
-            ),
-          )
+          .map((animal) => SlaughterBatchItem(animalId: animal.id))
           .toList(),
     );
-  }
-
-  double? _parseNumber(String value) =>
-      double.tryParse(value.trim().replaceAll(',', '.'));
-
-  String? _validateTechnicalRequirements() {
-    if (!_isOwnIg) return null;
-    if (_carcassColor != 'VERMELHA_ROSADA' ||
-        _fatColor != 'BRANCA' ||
-        _meatTexture != 'FINA') {
-      return 'As características da carcaça não atendem aos requisitos da IG.';
-    }
-    if (!_hasBoletimEmbarque || !_hasGTA || !_hasHTA) {
-      return 'Confirme toda a documentação obrigatória.';
-    }
-    if (!_confirmWelfare ||
-        !_confirmSanity ||
-        !_confirmOrigin ||
-        !_confirmFasting) {
-      return 'Confirme todas as declarações de conformidade.';
-    }
-    return null;
   }
 
   Future<void> _review() async {
     if (!_formKey.currentState!.validate()) return;
     final request = _buildRequest();
-    final error = request.validate() ?? _validateTechnicalRequirements();
+    final error = request.validate();
     if (error != null) {
       _showError(error);
       return;
@@ -156,7 +81,7 @@ class _SlaughterRegistrationScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _reviewLine('Modo', _mode.label),
+              _reviewLine('Modalidade', _mode.label),
               _reviewLine('Animais', '${widget.animals.length}'),
               _reviewLine(
                 'Coleiras',
@@ -176,7 +101,7 @@ class _SlaughterRegistrationScreenState
                 const Padding(
                   padding: EdgeInsets.only(top: 12),
                   child: Text(
-                    'Os animais ficarão pendentes de validação pelo abatedouro.',
+                    'O registro ficará pendente de validação pelo abatedouro.',
                     style: TextStyle(
                       color: AppColors.warning,
                       fontWeight: FontWeight.w600,
@@ -230,8 +155,8 @@ class _SlaughterRegistrationScreenState
 
     final queued = result['queued'] == true;
     final statusMessage = _mode == SlaughterMode.igSlaughterhouse
-        ? 'Abate registrado e aguardando validação do abatedouro.'
-        : 'Abate registrado com sucesso.';
+        ? 'Abate enviado e aguardando validação do abatedouro.'
+        : 'Abate padrão registrado com sucesso.';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -286,29 +211,19 @@ class _SlaughterRegistrationScreenState
               title: 'Localização do abate',
               onChanged: (value) => _slaughterLocation = value,
             ),
-            if (_needsSlaughterhouse) ...[
+            if (_mode == SlaughterMode.igSlaughterhouse) ...[
               const SizedBox(height: 12),
               _textField(
                 _slaughterhouseCodeController,
-                'Código SIF / SIE / SIM',
+                'Código SIF / SIE / SIM do abatedouro',
                 Icons.business_outlined,
                 required: true,
               ),
-            ],
-            if (_mode == SlaughterMode.igSlaughterhouse) ...[
               const SizedBox(height: 12),
               _notice(
-                'O questionário técnico será preenchido e validado futuramente '
-                'pelo abatedouro. O status inicial será “Abate pendente”.',
+                'A análise da IG será feita pelo abatedouro. Até a validação, '
+                'os animais ficarão com abate pendente.',
               ),
-            ],
-            if (_isOwnIg) ...[
-              const SizedBox(height: 24),
-              _technicalQuestionnaire(),
-              const SizedBox(height: 24),
-              _sectionTitle('Peso e rendimento por animal'),
-              const SizedBox(height: 12),
-              ...widget.animals.map(_animalMeasurements),
             ],
             const SizedBox(height: 16),
             _textField(
@@ -365,14 +280,9 @@ class _SlaughterRegistrationScreenState
   );
 
   Widget _modeTile(SlaughterMode mode) {
-    final descriptions = {
-      SlaughterMode.standard:
-          'Sem IG. Formulário simples e finalização imediata.',
-      SlaughterMode.igOwn:
-          'Questionário técnico completo, peso e rendimento por animal.',
-      SlaughterMode.igSlaughterhouse:
-          'Sem questionário agora; fica pendente para validação futura.',
-    };
+    final description = mode == SlaughterMode.standard
+        ? 'Abate por conta própria, sem IG e com finalização imediata.'
+        : 'A IG será analisada e validada exclusivamente pelo abatedouro.';
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 8),
@@ -383,7 +293,7 @@ class _SlaughterRegistrationScreenState
           color: _mode == mode ? AppColors.primary : AppColors.textMuted,
         ),
         title: Text(mode.label),
-        subtitle: Text(descriptions[mode]!),
+        subtitle: Text(description),
       ),
     );
   }
@@ -400,161 +310,6 @@ class _SlaughterRegistrationScreenState
       ),
     ),
   );
-
-  Widget _technicalQuestionnaire() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _sectionTitle('Questionário técnico da IG'),
-      const SizedBox(height: 8),
-      _notice(
-        'As respostas abaixo são compartilhadas por todos os animais do lote.',
-      ),
-      const SizedBox(height: 12),
-      _dropdown(
-        'Comprovação da idade',
-        _proofOfAge,
-        const {
-          'RASTREABILIDADE': 'Rastreabilidade',
-          'DENTES': 'Análise dos dentes',
-        },
-        (value) => setState(() => _proofOfAge = value),
-      ),
-      const SizedBox(height: 12),
-      _dropdown(
-        'Cor da carcaça',
-        _carcassColor,
-        const {
-          'VERMELHA_ROSADA': 'Vermelha rosada',
-          'OTHER': 'Outra (não conforme)',
-        },
-        (value) => setState(() => _carcassColor = value),
-      ),
-      const SizedBox(height: 12),
-      _dropdown('Cor da gordura', _fatColor, const {
-        'BRANCA': 'Branca',
-        'OTHER': 'Outra (não conforme)',
-      }, (value) => setState(() => _fatColor = value)),
-      const SizedBox(height: 12),
-      _dropdown(
-        'Textura da carne',
-        _meatTexture,
-        const {'FINA': 'Fina', 'OTHER': 'Outra (não conforme)'},
-        (value) => setState(() => _meatTexture = value),
-      ),
-      const SizedBox(height: 12),
-      _check(
-        'Possui Boletim de Embarque',
-        _hasBoletimEmbarque,
-        (value) => _hasBoletimEmbarque = value,
-      ),
-      _check('Possui GTA', _hasGTA, (value) => _hasGTA = value),
-      _check('Possui HTA', _hasHTA, (value) => _hasHTA = value),
-      _check(
-        'Bem-estar animal confirmado',
-        _confirmWelfare,
-        (value) => _confirmWelfare = value,
-      ),
-      _check(
-        'Sanidade confirmada',
-        _confirmSanity,
-        (value) => _confirmSanity = value,
-      ),
-      _check(
-        'Origem geográfica confirmada',
-        _confirmOrigin,
-        (value) => _confirmOrigin = value,
-      ),
-      _check(
-        'Jejum pré-abate confirmado',
-        _confirmFasting,
-        (value) => _confirmFasting = value,
-      ),
-    ],
-  );
-
-  Widget _animalMeasurements(SlaughterAnimal animal) => Card(
-    elevation: 0,
-    margin: const EdgeInsets.only(bottom: 12),
-    child: Padding(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Coleira ${animal.tagId}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _numberField(
-                  _weightControllers[animal.id]!,
-                  'Peso (kg)',
-                  minimum: 0.01,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _numberField(
-                  _yieldControllers[animal.id]!,
-                  'Rendimento (%)',
-                  minimum: 42,
-                  maximum: 100,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
-
-  Widget _numberField(
-    TextEditingController controller,
-    String label, {
-    required double minimum,
-    double? maximum,
-  }) => TextFormField(
-    controller: controller,
-    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]'))],
-    decoration: _decoration(label, Icons.scale_outlined),
-    validator: (value) {
-      final parsed = _parseNumber(value ?? '');
-      if (parsed == null || parsed < minimum) {
-        return minimum == 42 ? 'Mín. 42%' : 'Peso inválido';
-      }
-      if (maximum != null && parsed > maximum) return 'Máx. 100%';
-      return null;
-    },
-  );
-
-  Widget _dropdown(
-    String label,
-    String value,
-    Map<String, String> items,
-    ValueChanged<String> onChanged,
-  ) => DropdownButtonFormField<String>(
-    initialValue: value,
-    decoration: _decoration(label, Icons.checklist),
-    items: items.entries
-        .map(
-          (item) => DropdownMenuItem(value: item.key, child: Text(item.value)),
-        )
-        .toList(),
-    onChanged: (value) => onChanged(value!),
-  );
-
-  Widget _check(String title, bool value, ValueChanged<bool> update) =>
-      CheckboxListTile(
-        value: value,
-        onChanged: (checked) => setState(() => update(checked ?? false)),
-        title: Text(title, style: const TextStyle(fontSize: 14)),
-        contentPadding: EdgeInsets.zero,
-        controlAffinity: ListTileControlAffinity.leading,
-        activeColor: AppColors.success,
-      );
 
   Widget _textField(
     TextEditingController controller,

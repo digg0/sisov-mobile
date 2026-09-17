@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/db/local_cache.dart';
 import '../../../core/session/session_service.dart';
@@ -22,6 +23,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _sheepSvg = '''
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <path fill="#000" d="M48.8 24.1a9.2 9.2 0 0 0-4.1-1.1 13.5 13.5 0 0 0-25.9-1.4 10.2 10.2 0 0 0-1.3 20.2h2.7v8.7a3.5 3.5 0 0 0 7 0v-8.7h11v8.7a3.5 3.5 0 0 0 7 0v-9.1a9.3 9.3 0 0 0 3.6-17.3Z"/>
+  <path fill="#000" d="M48.2 19.4a9.6 9.6 0 1 1 0 19.2 9.6 9.6 0 0 1 0-19.2Zm-7.8 2.4-5.5-3.6a1.8 1.8 0 0 0-2.7 1.8c.5 3.7 3.1 6.1 6.8 6.4l1.4-4.6Zm15.6.1 4.7-2.7a1.8 1.8 0 0 1 2.6 2c-.8 3.4-3.2 5.5-6.6 5.8l-.7-5.1Z"/>
+</svg>
+''';
+
   final _authService = AuthService();
   final _animalService = AnimalService();
   final _propertyService = PropertyService();
@@ -634,7 +642,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         Text(
           label,
-          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.8),
+            fontSize: 14,
+          ),
         ),
       ],
     );
@@ -697,7 +708,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         ),
-        _actionButton("Rebanho", Icons.agriculture, AppColors.primary, () {
+        _actionButton("Rebanho", _sheepSvg, AppColors.primary, () {
           _navTo(const AnimalSearchScreen(isTransferMode: false));
         }),
         _actionButton(
@@ -727,7 +738,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _actionButton(
     String label,
-    IconData icon,
+    Object icon,
     Color color,
     VoidCallback onTap,
   ) {
@@ -740,7 +751,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap();
         },
         borderRadius: BorderRadius.circular(20),
-        splashColor: color.withOpacity(0.1),
+        splashColor: color.withValues(alpha: 0.1),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
@@ -752,10 +763,17 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: 26),
+                child: icon is String
+                    ? SvgPicture.string(
+                        icon,
+                        width: 26,
+                        height: 26,
+                        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                      )
+                    : Icon(icon as IconData, color: color, size: 26),
               ),
               const SizedBox(height: 10),
               Text(
@@ -800,7 +818,7 @@ class _HomeScreenState extends State<HomeScreen> {
               border: Border.all(color: AppColors.borderSoft),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
+                  color: Colors.black.withValues(alpha: 0.02),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -811,7 +829,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: color, size: 22),
