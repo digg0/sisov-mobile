@@ -1,6 +1,5 @@
 enum SlaughterMode {
-  standard('STANDARD', 'Abate padrão'),
-  igOwn('IG_OWN', 'IG por conta própria'),
+  standard('STANDARD', 'Abate padrão sem IG'),
   igSlaughterhouse('IG_SLAUGHTERHOUSE', 'IG pelo abatedouro');
 
   const SlaughterMode(this.apiValue, this.label);
@@ -45,17 +44,6 @@ class SlaughterCommonData {
   final Map<String, dynamic>? location;
   final String? frigorificoCode;
   final String? additionalNotes;
-  final String? proofOfAge;
-  final String? carcassColor;
-  final String? fatColor;
-  final String? meatTexture;
-  final bool? hasBoletimEmbarque;
-  final bool? hasGTA;
-  final bool? hasHTA;
-  final bool confirmWelfare;
-  final bool confirmSanity;
-  final bool? geographicOriginConfirmed;
-  final bool? preSlaughterFastingConfirmed;
 
   const SlaughterCommonData({
     required this.slaughterDate,
@@ -63,17 +51,6 @@ class SlaughterCommonData {
     this.location,
     this.frigorificoCode,
     this.additionalNotes,
-    this.proofOfAge,
-    this.carcassColor,
-    this.fatColor,
-    this.meatTexture,
-    this.hasBoletimEmbarque,
-    this.hasGTA,
-    this.hasHTA,
-    this.confirmWelfare = false,
-    this.confirmSanity = false,
-    this.geographicOriginConfirmed,
-    this.preSlaughterFastingConfirmed,
   });
 
   Map<String, dynamic> toJson() => {
@@ -82,38 +59,15 @@ class SlaughterCommonData {
     if (location != null) 'location': location,
     if (frigorificoCode?.isNotEmpty == true) 'frigorificoCode': frigorificoCode,
     if (additionalNotes?.isNotEmpty == true) 'additionalNotes': additionalNotes,
-    if (proofOfAge != null) 'proofOfAge': proofOfAge,
-    if (carcassColor != null) 'carcassColor': carcassColor,
-    if (fatColor != null) 'fatColor': fatColor,
-    if (meatTexture != null) 'meatTexture': meatTexture,
-    if (hasBoletimEmbarque != null) 'hasBoletimEmbarque': hasBoletimEmbarque,
-    if (hasGTA != null) 'hasGTA': hasGTA,
-    if (hasHTA != null) 'hasHTA': hasHTA,
-    if (proofOfAge != null) 'confirmWelfare': confirmWelfare,
-    if (proofOfAge != null) 'confirmSanity': confirmSanity,
-    if (geographicOriginConfirmed != null)
-      'geographicOriginConfirmed': geographicOriginConfirmed,
-    if (preSlaughterFastingConfirmed != null)
-      'preSlaughterFastingConfirmed': preSlaughterFastingConfirmed,
   };
 }
 
 class SlaughterBatchItem {
-  const SlaughterBatchItem({
-    required this.animalId,
-    this.carcassWeight,
-    this.carcassYield,
-  });
+  const SlaughterBatchItem({required this.animalId});
 
   final String animalId;
-  final double? carcassWeight;
-  final double? carcassYield;
 
-  Map<String, dynamic> toJson() => {
-    'animalId': animalId,
-    if (carcassWeight != null) 'carcassWeight': carcassWeight,
-    if (carcassYield != null) 'carcassYield': carcassYield,
-  };
+  Map<String, dynamic> toJson() => {'animalId': animalId};
 }
 
 class SlaughterBatchRequest {
@@ -144,20 +98,9 @@ class SlaughterBatchRequest {
     if (commonData.location == null) {
       return 'Capture a localização atual do abate.';
     }
-    if (mode == SlaughterMode.igOwn) {
-      if (items.any(
-        (item) => item.carcassWeight == null || item.carcassWeight! <= 0,
-      )) {
-        return 'Informe um peso de carcaça válido para cada animal.';
-      }
-      if (items.any(
-        (item) =>
-            item.carcassYield == null ||
-            item.carcassYield! < 42 ||
-            item.carcassYield! > 100,
-      )) {
-        return 'O rendimento de cada carcaça deve ficar entre 42% e 100%.';
-      }
+    if (mode == SlaughterMode.igSlaughterhouse &&
+        (commonData.frigorificoCode?.trim().isEmpty ?? true)) {
+      return 'Informe o código SIF, SIE ou SIM do abatedouro.';
     }
     return null;
   }
