@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/location/location_capture_field.dart';
+import '../../../core/location/location_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../models/slaughter_registration_model.dart';
 import '../services/animal_service.dart';
@@ -19,7 +21,6 @@ class _SlaughterRegistrationScreenState
     extends State<SlaughterRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _animalService = AnimalService();
-  final _locationController = TextEditingController();
   final _slaughterhouseCodeController = TextEditingController();
   final _notesController = TextEditingController();
   final _weightControllers = <String, TextEditingController>{};
@@ -27,6 +28,7 @@ class _SlaughterRegistrationScreenState
 
   SlaughterMode _mode = SlaughterMode.standard;
   DateTime _slaughterDate = DateTime.now();
+  LocationSnapshot? _slaughterLocation;
   String _proofOfAge = 'RASTREABILIDADE';
   String _carcassColor = 'VERMELHA_ROSADA';
   String _fatColor = 'BRANCA';
@@ -54,7 +56,6 @@ class _SlaughterRegistrationScreenState
 
   @override
   void dispose() {
-    _locationController.dispose();
     _slaughterhouseCodeController.dispose();
     _notesController.dispose();
     for (final controller in _weightControllers.values) {
@@ -81,7 +82,8 @@ class _SlaughterRegistrationScreenState
       mode: _mode,
       commonData: SlaughterCommonData(
         slaughterDate: _slaughterDate,
-        slaughterLocation: _locationController.text.trim(),
+        slaughterLocation: _slaughterLocation?.label ?? '',
+        location: _slaughterLocation?.toJson(),
         frigorificoCode: _needsSlaughterhouse
             ? _slaughterhouseCodeController.text.trim()
             : null,
@@ -166,7 +168,10 @@ class _SlaughterRegistrationScreenState
                     '${_slaughterDate.month.toString().padLeft(2, '0')}/'
                     '${_slaughterDate.year}',
               ),
-              _reviewLine('Local', _locationController.text.trim()),
+              _reviewLine(
+                'Local',
+                _slaughterLocation?.label ?? 'Não capturado',
+              ),
               if (_mode == SlaughterMode.igSlaughterhouse)
                 const Padding(
                   padding: EdgeInsets.only(top: 12),
@@ -277,11 +282,9 @@ class _SlaughterRegistrationScreenState
             const SizedBox(height: 12),
             _dateField(),
             const SizedBox(height: 12),
-            _textField(
-              _locationController,
-              'Local do abate',
-              Icons.location_on_outlined,
-              required: true,
+            LocationCaptureField(
+              title: 'Localização do abate',
+              onChanged: (value) => _slaughterLocation = value,
             ),
             if (_needsSlaughterhouse) ...[
               const SizedBox(height: 12),

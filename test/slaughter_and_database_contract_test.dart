@@ -4,12 +4,20 @@ import 'package:sisov_mobile/features/animals/models/slaughter_registration_mode
 
 void main() {
   group('slaughter batch contract', () {
+    const location = {
+      'latitude': -6.003,
+      'longitude': -40.292,
+      'accuracy': 8.0,
+      'capturedAt': '2026-08-11T12:00:00.000Z',
+    };
+
     test('serializes one idempotent batch request with per-animal IG data', () {
       final request = SlaughterBatchRequest(
         mode: SlaughterMode.igOwn,
         commonData: SlaughterCommonData(
           slaughterDate: DateTime.utc(2026, 8, 11),
           slaughterLocation: 'Abatedouro Tauá',
+          location: location,
           frigorificoCode: 'SIM-123',
           proofOfAge: 'RASTREABILIDADE',
           carcassColor: 'VERMELHA_ROSADA',
@@ -50,6 +58,7 @@ void main() {
         commonData: SlaughterCommonData(
           slaughterDate: DateTime.utc(2026, 8, 11),
           slaughterLocation: 'Fazenda Boa Vista',
+          location: location,
         ),
         items: const [SlaughterBatchItem(animalId: 'animal-1')],
       );
@@ -66,6 +75,7 @@ void main() {
         commonData: SlaughterCommonData(
           slaughterDate: DateTime.utc(2026, 8, 11),
           slaughterLocation: 'Abatedouro Tauá',
+          location: location,
         ),
         items: const [
           SlaughterBatchItem(

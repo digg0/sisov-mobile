@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/location/location_capture_field.dart';
+import '../../../core/location/location_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../services/animal_service.dart';
 
@@ -26,6 +28,7 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
   DateTime? _birthDate;
   DateTime? _coverageDate;
   DateTime? _lambingDate;
+  LocationSnapshot? _birthLocation;
   bool _isLoading = false;
   List<Map<String, dynamic>> _offspringOptions = [];
   final Set<String> _offspringIds = {};
@@ -99,6 +102,13 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
       _showMessage('Informe a data de nascimento.', isError: true);
       return;
     }
+    if (_birthLocation == null) {
+      _showMessage(
+        'Capture a localização atual para comprovar a origem do animal.',
+        isError: true,
+      );
+      return;
+    }
     if (_selectedSex == 'FEMALE' &&
         _coverageDate != null &&
         _lambingDate != null &&
@@ -117,6 +127,7 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
       'sex': _selectedSex,
       'birthDate': _birthDate!.toIso8601String(),
       'birthCity': _cityController.text.trim(),
+      'location': _birthLocation!.toJson(),
       if (_coatColorController.text.trim().isNotEmpty)
         'coatColor': _coatColorController.text.trim(),
       if (_number(_birthWeightController.text) != null)
@@ -224,6 +235,11 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
               'Cidade de nascimento',
               Icons.location_city,
               required: true,
+            ),
+            const SizedBox(height: 12),
+            LocationCaptureField(
+              title: 'Localização do nascimento',
+              onChanged: (value) => _birthLocation = value,
             ),
             const SizedBox(height: 12),
             _weightField(_birthWeightController, 'Peso ao nascer (kg)'),

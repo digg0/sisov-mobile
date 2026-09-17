@@ -73,6 +73,7 @@ class PropertyService {
     required String farmName,
     required String city,
     required String state,
+    required Map<String, dynamic> location,
   }) async {
     final localId = SyncService.newLocalId();
     await _cache.upsertProperty({
@@ -80,12 +81,18 @@ class PropertyService {
       'farmName': farmName,
       'city': city,
       'state': state,
+      'location': location,
       'syncStatus': 'PENDING',
     });
 
     final result = await SyncService.instance.submitWrite(
       endpoint: '/properties',
-      payload: {'farmName': farmName, 'city': city, 'state': state},
+      payload: {
+        'farmName': farmName,
+        'city': city,
+        'state': state,
+        'location': location,
+      },
       label: 'Cadastro de propriedade',
       entityType: 'property',
       localEntityId: localId,

@@ -50,7 +50,7 @@ class ManagementEventModel {
       case 'VET_TREATMENT':
         return 'Tratamento Veterinário';
       case 'WEIGHT_MEASUREMENT':
-        return 'Medição de Peso';
+        return 'Pesagem';
       case 'NUTRITIONAL_FEEDING':
         return 'Alimentação';
       case 'REPRODUCTION_COVERAGE':
@@ -60,14 +60,27 @@ class ManagementEventModel {
       case 'SLAUGHTER_FINALIZATION':
         return 'Finalização de Abate';
       default:
-        return eventType.replaceAll('_', ' ').toLowerCase().split(' ').map((word) => word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}').join(' ');
+        return eventType
+            .replaceAll('_', ' ')
+            .toLowerCase()
+            .split(' ')
+            .map(
+              (word) => word.isEmpty
+                  ? word
+                  : '${word[0].toUpperCase()}${word.substring(1)}',
+            )
+            .join(' ');
     }
   }
 
   String get subtitle {
     final parts = <String>[];
-    if (description != null && description!.isNotEmpty) parts.add(description!);
-    if (eventLocation != null && eventLocation!.isNotEmpty) parts.add(eventLocation!);
+    if (description != null && description!.isNotEmpty) {
+      parts.add(description!);
+    }
+    if (eventLocation != null && eventLocation!.isNotEmpty) {
+      parts.add(eventLocation!);
+    }
     return parts.join(' • ');
   }
 }

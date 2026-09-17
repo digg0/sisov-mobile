@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/location/location_capture_field.dart';
+import '../../../core/location/location_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../services/animal_service.dart';
 
@@ -33,6 +35,7 @@ class _AnimalDeathReportScreenState extends State<AnimalDeathReportScreen> {
   final _animalService = AnimalService();
   DateTime _deathDate = DateTime.now();
   String _cause = 'DISEASE';
+  LocationSnapshot? _deathLocation;
   bool _submitting = false;
 
   @override
@@ -54,12 +57,22 @@ class _AnimalDeathReportScreenState extends State<AnimalDeathReportScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_deathLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Capture a localização atual para continuar.'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
     setState(() => _submitting = true);
 
     final result = await _animalService.reportDeath(
       animalId: widget.animalId,
       deathDate: _deathDate,
       cause: _cause,
+      location: _deathLocation!.toJson(),
       notes: _notesController.text,
     );
     if (!mounted) return;
@@ -122,6 +135,11 @@ class _AnimalDeathReportScreenState extends State<AnimalDeathReportScreen> {
                 subtitle: Text(formattedDate),
                 trailing: const Icon(Icons.edit_calendar),
                 onTap: _submitting ? null : _selectDate,
+              ),
+              const SizedBox(height: 16),
+              LocationCaptureField(
+                title: 'Localização da ocorrência',
+                onChanged: (value) => _deathLocation = value,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(

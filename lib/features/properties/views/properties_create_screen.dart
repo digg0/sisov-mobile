@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/location/location_capture_field.dart';
+import '../../../core/location/location_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../services/property_service.dart';
 import '../../../core/utils/validators.dart';
@@ -20,15 +22,28 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
   final _stateController = TextEditingController();
 
   bool _isLoading = false;
+  LocationSnapshot? _propertyLocation;
 
   void _salvar() async {
     if (_formKey.currentState!.validate()) {
+      if (_propertyLocation == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Capture a localização atual da propriedade para continuar.',
+            ),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+        return;
+      }
       setState(() => _isLoading = true);
 
       final resultado = await _propertyService.createProperty(
         farmName: _nameController.text.trim(),
         city: _cityController.text.trim(),
         state: _stateController.text.trim().toUpperCase(),
+        location: _propertyLocation!.toJson(),
       );
 
       setState(() => _isLoading = false);
@@ -39,9 +54,12 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
         final queued = resultado['queued'] == true;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(queued
-                ? (resultado['message'] ?? 'Salvo no aparelho. Será enviado quando houver internet.')
-                : 'Propriedade cadastrada!'),
+            content: Text(
+              queued
+                  ? (resultado['message'] ??
+                        'Salvo no aparelho. Será enviado quando houver internet.')
+                  : 'Propriedade cadastrada!',
+            ),
             backgroundColor: queued ? Colors.orange : Colors.green,
           ),
         );
@@ -49,7 +67,10 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(resultado['message']), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(resultado['message']),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -60,7 +81,10 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Nova Fazenda', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Nova Fazenda',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: AppColors.primary,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -80,8 +104,12 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
               _buildLabel('Nome da Fazenda'),
               TextFormField(
                 controller: _nameController,
-                decoration: _inputStyle('Ex: Fazenda Boa Esperança', Icons.agriculture),
-                validator: (v) => v == null || v.isEmpty ? 'Insira o nome' : null,
+                decoration: _inputStyle(
+                  'Ex: Fazenda Boa Esperança',
+                  Icons.agriculture,
+                ),
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Insira o nome' : null,
               ),
 
               const SizedBox(height: 20),
@@ -96,7 +124,10 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
                         _buildLabel('Cidade'),
                         TextFormField(
                           controller: _cityController,
-                          decoration: _inputStyle('Cidade', Icons.location_city),
+                          decoration: _inputStyle(
+                            'Cidade',
+                            Icons.location_city,
+                          ),
                           validator: (v) =>
                               v == null || v.isEmpty ? 'Obrigatório' : null,
                         ),
@@ -141,8 +172,9 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide:
-                                  const BorderSide(color: AppColors.border),
+                              borderSide: const BorderSide(
+                                color: AppColors.border,
+                              ),
                             ),
                           ),
                           validator: AppValidators.state,
@@ -164,6 +196,12 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
                 ],
               ),
 
+              const SizedBox(height: 20),
+              LocationCaptureField(
+                title: 'Localização da propriedade',
+                onChanged: (value) => _propertyLocation = value,
+              ),
+
               const SizedBox(height: 40),
 
               SizedBox(
@@ -173,11 +211,20 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
                   onPressed: _isLoading ? null : _salvar,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Salvar Fazenda', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      : const Text(
+                          'Salvar Fazenda',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -190,7 +237,13 @@ class _PropertyCreateScreenState extends State<PropertyCreateScreen> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+      ),
     );
   }
 
