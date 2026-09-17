@@ -190,6 +190,7 @@ class AnimalService {
     required String animalId,
     required DateTime deathDate,
     required String cause,
+    required Map<String, dynamic> location,
     String? notes,
   }) async {
     final result = await SyncService.instance.submitWrite(
@@ -197,6 +198,7 @@ class AnimalService {
       payload: {
         'deathDate': deathDate.toIso8601String(),
         'cause': cause,
+        'location': location,
         if (notes?.trim().isNotEmpty == true) 'notes': notes!.trim(),
       },
       label: 'Comunicação de morte',

@@ -42,6 +42,7 @@ class SlaughterAnimal {
 class SlaughterCommonData {
   final DateTime slaughterDate;
   final String slaughterLocation;
+  final Map<String, dynamic>? location;
   final String? frigorificoCode;
   final String? additionalNotes;
   final String? proofOfAge;
@@ -59,6 +60,7 @@ class SlaughterCommonData {
   const SlaughterCommonData({
     required this.slaughterDate,
     required this.slaughterLocation,
+    this.location,
     this.frigorificoCode,
     this.additionalNotes,
     this.proofOfAge,
@@ -77,6 +79,7 @@ class SlaughterCommonData {
   Map<String, dynamic> toJson() => {
     'slaughterDate': slaughterDate.toIso8601String(),
     'slaughterLocation': slaughterLocation,
+    if (location != null) 'location': location,
     if (frigorificoCode?.isNotEmpty == true) 'frigorificoCode': frigorificoCode,
     if (additionalNotes?.isNotEmpty == true) 'additionalNotes': additionalNotes,
     if (proofOfAge != null) 'proofOfAge': proofOfAge,
@@ -137,6 +140,9 @@ class SlaughterBatchRequest {
     }
     if (commonData.slaughterLocation.trim().isEmpty) {
       return 'Informe o local do abate.';
+    }
+    if (commonData.location == null) {
+      return 'Capture a localização atual do abate.';
     }
     if (mode == SlaughterMode.igOwn) {
       if (items.any(

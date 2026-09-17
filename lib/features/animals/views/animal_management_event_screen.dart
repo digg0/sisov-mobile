@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/location/location_capture_field.dart';
+import '../../../core/location/location_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../services/animal_service.dart';
 
@@ -15,22 +17,24 @@ class AnimalManagementEventScreen extends StatefulWidget {
   });
 
   @override
-  State<AnimalManagementEventScreen> createState() => _AnimalManagementEventScreenState();
+  State<AnimalManagementEventScreen> createState() =>
+      _AnimalManagementEventScreenState();
 }
 
-class _AnimalManagementEventScreenState extends State<AnimalManagementEventScreen> {
+class _AnimalManagementEventScreenState
+    extends State<AnimalManagementEventScreen> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
-  final _locationController = TextEditingController();
   final _valueController = TextEditingController();
   final _animalService = AnimalService();
   bool _isSaving = false;
   DateTime? _selectedDate;
+  LocationSnapshot? _eventLocation;
   String _selectedType = 'VACCINATION';
 
   static const _eventTypes = [
     {'value': 'VACCINATION', 'label': 'Vacinação'},
-    {'value': 'WEIGHT_MEASUREMENT', 'label': 'Medição de Peso'},
+    {'value': 'WEIGHT_MEASUREMENT', 'label': 'Pesagem'},
     {'value': 'NUTRITIONAL_FEEDING', 'label': 'Alimentação'},
     {'value': 'REPRODUCTION_COVERAGE', 'label': 'Cobertura Reprodutiva'},
     {'value': 'VET_TREATMENT', 'label': 'Tratamento Veterinário'},
@@ -95,18 +99,32 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
       );
       return;
     }
+    if (_eventLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Capture a localização atual para registrar o evento.'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
 
     final eventData = {
       'eventType': _selectedType,
       'description': _descriptionController.text.trim(),
-      'eventLocation': _locationController.text.trim(),
+      'eventLocation': _eventLocation!.label,
+      'location': _eventLocation!.toJson(),
       'occurredAt': _selectedDate!.toIso8601String(),
-      if (_valueController.text.trim().isNotEmpty) 'value': _valueController.text.trim(),
+      if (_valueController.text.trim().isNotEmpty)
+        'value': _valueController.text.trim(),
     };
 
-    final result = await _animalService.registerManagementEvent(widget.animalId, eventData);
+    final result = await _animalService.registerManagementEvent(
+      widget.animalId,
+      eventData,
+    );
     setState(() => _isSaving = false);
 
     if (result['success']) {
@@ -114,9 +132,12 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
       final queued = result['queued'] == true;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(queued
-              ? (result['message'] ?? 'Salvo no aparelho. Será enviado quando houver internet.')
-              : 'Evento de manejo registrado com sucesso.'),
+          content: Text(
+            queued
+                ? (result['message'] ??
+                      'Salvo no aparelho. Será enviado quando houver internet.')
+                : 'Evento de manejo registrado com sucesso.',
+          ),
           backgroundColor: queued ? AppColors.warning : AppColors.success,
         ),
       );
@@ -136,7 +157,6 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
   @override
   void dispose() {
     _descriptionController.dispose();
-    _locationController.dispose();
     _valueController.dispose();
     super.dispose();
   }
@@ -156,21 +176,37 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Animal: ${widget.animalName}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              Text(
+                'Animal: ${widget.animalName}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 24),
               _buildDropdown(),
               const SizedBox(height: 14),
               _buildDateField(),
               const SizedBox(height: 14),
-              _buildTextField(_descriptionController, 'Observações do Evento', Icons.notes, maxLines: 4),
+              _buildTextField(
+                _descriptionController,
+                'Observações do Evento',
+                Icons.notes,
+                maxLines: 4,
+              ),
               const SizedBox(height: 14),
-              _buildTextField(_locationController, 'Local do Evento', Icons.location_on),
+              LocationCaptureField(
+                title: 'Localização do evento',
+                onChanged: (value) => _eventLocation = value,
+              ),
               const SizedBox(height: 14),
               _buildTextField(
                 _valueController,
                 _valueFieldLabel,
                 Icons.straighten,
-                keyboardType: _selectedType == 'WEIGHT_MEASUREMENT' ? TextInputType.number : TextInputType.text,
+                keyboardType: _selectedType == 'WEIGHT_MEASUREMENT'
+                    ? TextInputType.number
+                    : TextInputType.text,
               ),
               const SizedBox(height: 32),
               SizedBox(
@@ -180,17 +216,29 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
                   onPressed: _isSaving ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   child: _isSaving
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Salvar Evento', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      : const Text(
+                          'Salvar Evento',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 16),
               const Text(
                 'Registre vacinas, pesagens, alimentação ou outros cuidados do animal.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.4),
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
               ),
             ],
           ),
@@ -227,7 +275,9 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
   }
 
   Widget _buildDateField() {
-    final label = _selectedDate == null ? 'Data do Evento' : 'Data: ${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}';
+    final label = _selectedDate == null
+        ? 'Data do Evento'
+        : 'Data: ${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}';
     return GestureDetector(
       onTap: _selectDate,
       child: Container(
@@ -240,7 +290,13 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 16, color: AppColors.textPrimary)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.textPrimary,
+              ),
+            ),
             const Icon(Icons.calendar_month, color: AppColors.primary),
           ],
         ),
@@ -248,7 +304,13 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {int maxLines = 1, TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -267,7 +329,8 @@ class _AnimalManagementEventScreenState extends State<AnimalManagementEventScree
         ),
         validator: (value) {
           if (label == 'Data do Evento') return null;
-          if (label == _valueFieldLabel && _selectedType == 'WEIGHT_MEASUREMENT') {
+          if (label == _valueFieldLabel &&
+              _selectedType == 'WEIGHT_MEASUREMENT') {
             if (value == null || value.trim().isEmpty) {
               return 'Informe o peso em kg.';
             }
