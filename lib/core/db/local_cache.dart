@@ -241,7 +241,6 @@ class LocalCache {
       'birth_city': animal['birthCity']?.toString() ?? '',
       'coat_color': animal['coatColor']?.toString(),
       'birth_weight': _asDouble(animal['birthWeight']),
-      'weaning_weight': _asDouble(animal['weaningWeight']),
       'notes': animal['notes']?.toString(),
       'coverage_date': animal['coverageDate']?.toString(),
       'lambing_date': animal['lambingDate']?.toString(),
@@ -287,7 +286,6 @@ class LocalCache {
           'birth_city': animal['birthCity']?.toString() ?? '',
           'coat_color': animal['coatColor']?.toString(),
           'birth_weight': _asDouble(animal['birthWeight']),
-          'weaning_weight': _asDouble(animal['weaningWeight']),
           'notes': animal['notes']?.toString(),
           'coverage_date': animal['coverageDate']?.toString(),
           'lambing_date': animal['lambingDate']?.toString(),
@@ -356,8 +354,6 @@ class LocalCache {
               serverData?['coatColor']?.toString() ?? row['coat_color'],
           'birth_weight':
               _asDouble(serverData?['birthWeight']) ?? row['birth_weight'],
-          'weaning_weight':
-              _asDouble(serverData?['weaningWeight']) ?? row['weaning_weight'],
           'notes': serverData?['notes']?.toString() ?? row['notes'],
           'coverage_date':
               serverData?['coverageDate']?.toString() ?? row['coverage_date'],
@@ -418,7 +414,6 @@ class LocalCache {
     'birthCity': r['birth_city'],
     'coatColor': r['coat_color'],
     'birthWeight': r['birth_weight'],
-    'weaningWeight': r['weaning_weight'],
     'notes': r['notes'],
     'coverageDate': r['coverage_date'],
     'lambingDate': r['lambing_date'],
