@@ -44,7 +44,7 @@ class _AnimalManagementEventScreenState
   String get _valueFieldLabel {
     switch (_selectedType) {
       case 'VACCINATION':
-        return 'Vacina / Dose';
+        return 'Nome da vacina *';
       case 'WEIGHT_MEASUREMENT':
         return 'Peso (kg)';
       case 'NUTRITIONAL_FEEDING':
@@ -268,7 +268,10 @@ class _AnimalManagementEventScreenState
         decoration: const InputDecoration(border: InputBorder.none),
         onChanged: (value) {
           if (value == null) return;
-          setState(() => _selectedType = value);
+          setState(() {
+            _selectedType = value;
+            _valueController.clear();
+          });
         },
       ),
     );
@@ -334,6 +337,11 @@ class _AnimalManagementEventScreenState
             if (value == null || value.trim().isEmpty) {
               return 'Informe o peso em kg.';
             }
+          }
+          if (label == _valueFieldLabel &&
+              _selectedType == 'VACCINATION' &&
+              (value == null || value.trim().isEmpty)) {
+            return 'Informe o nome da vacina.';
           }
           return null;
         },

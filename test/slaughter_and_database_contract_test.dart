@@ -11,45 +11,24 @@ void main() {
       'capturedAt': '2026-08-11T12:00:00.000Z',
     };
 
-    test('serializes one idempotent batch request with per-animal IG data', () {
+    test('serializes a standard slaughter batch without IG data', () {
       final request = SlaughterBatchRequest(
-        mode: SlaughterMode.igOwn,
+        mode: SlaughterMode.standard,
         commonData: SlaughterCommonData(
           slaughterDate: DateTime.utc(2026, 8, 11),
-          slaughterLocation: 'Abatedouro Tauá',
+          slaughterLocation: 'Fazenda Boa Vista',
           location: location,
-          frigorificoCode: 'SIM-123',
-          proofOfAge: 'RASTREABILIDADE',
-          carcassColor: 'VERMELHA_ROSADA',
-          fatColor: 'BRANCA',
-          meatTexture: 'FINA',
-          hasBoletimEmbarque: true,
-          hasGTA: true,
-          hasHTA: true,
-          confirmWelfare: true,
-          confirmSanity: true,
-          geographicOriginConfirmed: true,
-          preSlaughterFastingConfirmed: true,
         ),
         items: const [
-          SlaughterBatchItem(
-            animalId: 'animal-1',
-            carcassWeight: 18.5,
-            carcassYield: 45,
-          ),
-          SlaughterBatchItem(
-            animalId: 'animal-2',
-            carcassWeight: 20,
-            carcassYield: 47,
-          ),
+          SlaughterBatchItem(animalId: 'animal-1'),
+          SlaughterBatchItem(animalId: 'animal-2'),
         ],
       );
 
       expect(request.validate(), isNull);
-      expect(request.toJson()['mode'], 'IG_OWN');
+      expect(request.toJson()['mode'], 'STANDARD');
       expect(request.toJson()['items'], hasLength(2));
-      expect(request.toJson()['slaughterLocation'], 'Abatedouro Tauá');
-      expect((request.toJson()['items'] as List).first['carcassWeight'], 18.5);
+      expect(request.toJson()['slaughterLocation'], 'Fazenda Boa Vista');
     });
 
     test('standard mode omits the technical questionnaire', () {
@@ -69,24 +48,36 @@ void main() {
       expect(payload, isNot(contains('confirmWelfare')));
     });
 
-    test('rejects invalid IG carcass yield', () {
+    test('slaughterhouse IG remains pending without own IG questionnaire', () {
       final request = SlaughterBatchRequest(
-        mode: SlaughterMode.igOwn,
+        mode: SlaughterMode.igSlaughterhouse,
         commonData: SlaughterCommonData(
           slaughterDate: DateTime.utc(2026, 8, 11),
           slaughterLocation: 'Abatedouro Tauá',
           location: location,
+          frigorificoCode: 'SIF-123',
         ),
-        items: const [
-          SlaughterBatchItem(
-            animalId: 'animal-1',
-            carcassWeight: 18,
-            carcassYield: 41.9,
-          ),
-        ],
+        items: const [SlaughterBatchItem(animalId: 'animal-1')],
       );
 
-      expect(request.validate(), contains('42%'));
+      final payload = request.toJson();
+      expect(request.validate(), isNull);
+      expect(payload['mode'], 'IG_SLAUGHTERHOUSE');
+      expect(payload['frigorificoCode'], 'SIF-123');
+      expect(payload, isNot(contains('proofOfAge')));
+    });
+
+    test('rejects a slaughter batch without captured location', () {
+      final request = SlaughterBatchRequest(
+        mode: SlaughterMode.standard,
+        commonData: SlaughterCommonData(
+          slaughterDate: DateTime.utc(2026, 8, 11),
+          slaughterLocation: 'Fazenda Boa Vista',
+        ),
+        items: const [SlaughterBatchItem(animalId: 'animal-1')],
+      );
+
+      expect(request.validate(), contains('localização'));
     });
   });
 
