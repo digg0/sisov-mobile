@@ -274,22 +274,6 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
         backgroundColor: AppColors.primary,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          if ((widget.isSlaughterMode || widget.isTransferMode) &&
-              _selectedAnimalIds.isNotEmpty)
-            TextButton(
-              onPressed: widget.isSlaughterMode
-                  ? _openSlaughterBatch
-                  : _transferSelectedAnimals,
-              child: Text(
-                'Continuar (${_selectedAnimalIds.length})',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-        ],
       ),
       body: Column(
         children: [
@@ -332,6 +316,71 @@ class _AnimalSearchScreenState extends State<AnimalSearchScreen> {
                 : _buildResultArea(),
           ),
         ],
+      ),
+      bottomNavigationBar: widget.isSlaughterMode || widget.isTransferMode
+          ? _buildSelectionBottomBar()
+          : null,
+    );
+  }
+
+  Widget _buildSelectionBottomBar() {
+    final selectedCount = _selectedAnimalIds.length;
+    final enabled = selectedCount > 0;
+    final actionDescription = widget.isSlaughterMode
+        ? 'Continuar para registrar o abate'
+        : 'Continuar para transferir os animais';
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: const Border(top: BorderSide(color: AppColors.borderSoft)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: Semantics(
+          button: true,
+          enabled: enabled,
+          label: enabled
+              ? '$actionDescription. $selectedCount animais selecionados.'
+              : 'Selecione pelo menos um animal para continuar.',
+          child: SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: ElevatedButton.icon(
+              onPressed: enabled
+                  ? (widget.isSlaughterMode
+                        ? _openSlaughterBatch
+                        : _transferSelectedAnimals)
+                  : null,
+              icon: const Icon(Icons.arrow_forward_rounded),
+              label: Text(
+                enabled ? 'Continuar ($selectedCount)' : 'Selecione um animal',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: AppColors.borderSoft,
+                disabledForegroundColor: AppColors.textMuted,
+                elevation: enabled ? 2 : 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
